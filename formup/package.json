@@ -1,0 +1,20 @@
+{
+  "name": "formup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FormUp — matematik formüllerini aralıklı tekrarla kalıcı ezberleme uygulaması",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "smoke": "node scripts/build.mjs && node scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "katex": "0.16.9",
+    "lucide-react": "0.468.0",
+    "playwright-core": "^1.56.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  }
+}
