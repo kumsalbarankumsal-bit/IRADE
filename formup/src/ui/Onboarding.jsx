@@ -1,95 +1,116 @@
+/* İlk açılış: Pi kendini tanıtır, seviye ve günlük hedef seçilir, ilk ders hemen başlar */
 import React, { useState } from "react";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, Sparkles, Brain, Rocket, Languages } from "lucide-react";
+import Pi from "./Pi.jsx";
+import { Bi, Switch, sparkleAt } from "./common.jsx";
 import { Tex } from "../lib/tex.jsx";
-import { LEVELS } from "../data/topics.js";
-import { FORMULAS } from "../data/formulas.js";
+import { play } from "../lib/sound.js";
 
-const FLOAT = [
-  ["e^{i\\pi}+1=0", 4, 8], ["a^2+b^2=c^2", 54, 0], ["\\sin^2x+\\cos^2x=1", 8, 56], ["\\Delta=b^2-4ac", 58, 52],
-  ["\\int x^n\\,dx", 30, 104], ["\\dbinom{n}{r}", 74, 98],
+const LEVELS = [
+  { id: "zero", tr: "Sıfırdan başla", en: "Start from zero", dtr: "Bölünebilme kuralları, kesirler, üsler… Hepsini en baştan, adım adım.", glyph: "1, 2, 3" },
+  { id: "some", tr: "Biraz biliyorum", en: "I know a bit", dtr: "Temelden başla; bildiğin üniteleri kısa bir sınavla atla.", glyph: "\\tfrac{a}{b}" },
+  { id: "good", tr: "Temelim sağlam", en: "My basics are solid", dtr: "Doğrudan IB AA SL kitapçığına geç. Temel üniteler açık kalır.", glyph: "\\int" },
 ];
+const GOALS = [[20, "5 dk", "Rahat"], [40, "10 dk", "Normal"], [60, "15 dk", "Ciddi"], [100, "25 dk", "Çılgın"]];
 
-export default function Onboarding({ initial, onDone }) {
+export default function Onboarding({ state, onDone }) {
   const [step, setStep] = useState(0);
-  const [levels, setLevels] = useState(initial.levels);
-  const [goal, setGoal] = useState(initial.newPerDay);
-  const [ret, setRet] = useState(initial.retention);
-  const count = (lv) => FORMULAS.filter((f) => f.lv === lv).length;
-  const toggle = (id) => setLevels((l) => (l.includes(id) ? (l.length > 1 ? l.filter((x) => x !== id) : l) : [...l, id]));
+  const [level, setLevel] = useState("zero");
+  const [goal, setGoal] = useState(40);
+  const [showEn, setShowEn] = useState(true);
+  const [lit, setLit] = useState(0);
+  const sound = state.settings.sound;
+  const go = (n) => { play("tap", sound); setStep(n); };
+  const finish = () => onDone({ start: level, goal, showEn, onboarded: true });
 
   return (
-    <div className="shell onb">
+    <div className="onb">
+      <div className="onb-dots" aria-hidden="true">{[0, 1, 2, 3].map((i) => <span key={i} className={i === step ? "on" : i < step ? "past" : ""} />)}</div>
+
       {step === 0 && (
-        <>
-          <div className="onb-hero fade-in">
-            <div className="onb-logo">Form<sup>up</sup></div>
-            <p className="display" style={{ fontSize: 26, margin: 0 }}>Matematik formüllerini bir kez öğren, <span style={{ color: "var(--accent)" }}>kalıcı</span> hatırla.</p>
-            <p className="muted" style={{ margin: 0 }}>
-              {FORMULAS.length} formül, sınavdaki önemine göre sıralı. Her formül tam unutmak üzereyken karşına çıkar; bildikçe aralıklar uzar.
+        <div className="stack onb-step fade-in">
+          <div className="onb-hero">
+            <Pi mood="party" outfit="none" size={150} />
+          </div>
+          <div className="stack-sm" style={{ textAlign: "center" }}>
+            <div className="hand" style={{ color: "var(--gold)", fontSize: 30 }}>Selam! Ben Pi.</div>
+            <h1 className="display" style={{ fontSize: 30, margin: 0 }}>Matematiği sevmek zorunda değilsin.</h1>
+            <div className="en">You don't have to love math.</div>
+            <p className="muted" style={{ margin: "6px 0 0" }}>
+              Sadece formülleri <b>tam unutacağın anda</b> sana geri getireceğim. Günde birkaç dakika, bir oyun gibi.
+              Hiçbir şey bildiğini varsaymıyorum. <span className="en">I'll bring each formula back right before you forget it.</span>
             </p>
           </div>
-          <div className="float-formulas" aria-hidden="true">
-            {FLOAT.map(([t, x, y], i) => (
-              <span key={i} style={{ left: `${x}%`, top: y, animationDelay: `${i * 0.7}s`, fontSize: 15 + (i % 3) * 3 }}><Tex tex={t} /></span>
-            ))}
-          </div>
-          <div className="card stack-sm">
-            {[["1", "Keşfet", "Kartları kaydır: bildiklerini geç, bilmediklerini listene ekle."], ["2", "Öğren", "Kısa derslerde tanı, seç, hatırla, uygula."], ["3", "Tekrarla", "Uygulama doğru günü hesaplar: 1 gün, 3 gün, 1 hafta, 1 ay…"]].map(([n, t, d]) => (
-              <div key={n} className="row" style={{ alignItems: "flex-start" }}>
-                <span className="tag accent" style={{ minWidth: 24, justifyContent: "center" }}>{n}</span>
-                <span><b>{t}.</b> <span className="muted">{d}</span></span>
-              </div>
-            ))}
-          </div>
-          <div className="spacer" />
-          <button className="btn primary lg block" onClick={() => setStep(1)}>Başlayalım <ArrowRight size={19} /></button>
-        </>
+          <button className="btn gold lg block" onClick={() => go(1)}>Başlayalım · Let's go <ArrowRight size={18} /></button>
+        </div>
       )}
 
       {step === 1 && (
-        <div className="stack fade-in" style={{ flex: 1 }}>
-          <div className="eyebrow">1 / 2</div>
-          <h1 className="h1">Hangi formüller seni ilgilendiriyor?</h1>
+        <div className="stack onb-step fade-in">
+          <div className="pi-row"><Pi mood="think" outfit="none" size={70} /><div className="speech"><Bi tr="Matematikle aran nasıl? Dürüst ol, kimse bakmıyor." en="How are you with math? Be honest, nobody's watching." /></div></div>
           <div className="stack-sm">
-            {LEVELS.map((l) => {
-              const on = levels.includes(l.id);
-              return (
-                <button key={l.id} className={"choice" + (on ? " on" : "")} onClick={() => toggle(l.id)} aria-pressed={on}>
-                  <span>
-                    <b style={{ fontSize: 16 }}>{l.long}</b> <span className="tag num">{count(l.id)}</span>
-                    <div className="small muted">{l.blurb}</div>
-                  </span>
-                  <span className="tick">{on && <Check size={16} />}</span>
-                </button>
-              );
-            })}
+            {LEVELS.map((l) => (
+              <button key={l.id} className={"choice" + (level === l.id ? " on" : "")} onClick={() => { setLevel(l.id); play("tap", sound); }} aria-pressed={level === l.id}>
+                <span className="choice-glyph"><Tex tex={l.glyph} /></span>
+                <span className="stack-sm" style={{ gap: 2 }}>
+                  <b>{l.tr}</b><span className="en small">{l.en}</span>
+                  <span className="small muted">{l.dtr}</span>
+                </span>
+                <span className="tick">{level === l.id && <Check size={16} strokeWidth={3} />}</span>
+              </button>
+            ))}
           </div>
-          <div className="spacer" />
-          <button className="btn primary lg block" onClick={() => setStep(2)}>Devam <ArrowRight size={19} /></button>
+          <button className="btn gold lg block" onClick={() => go(2)}>Devam · Next <ArrowRight size={18} /></button>
         </div>
       )}
 
       {step === 2 && (
-        <div className="stack fade-in" style={{ flex: 1 }}>
-          <div className="eyebrow">2 / 2</div>
-          <h1 className="h1">Günde kaç yeni formül?</h1>
+        <div className="stack onb-step fade-in">
+          <div className="pi-row"><Pi mood="happy" outfit="none" size={70} /><div className="speech"><Bi tr="Günde ne kadar? Az ama her gün, çok ama ara sıradan iyidir." en="How much a day? A little every day beats a lot once in a while." /></div></div>
           <div className="goal-grid">
-            {[[3, "Hafif"], [5, "Rahat"], [8, "Dengeli"], [12, "Yoğun"], [20, "Kamp"]].map(([n, l]) => (
-              <button key={n} className={goal === n ? "on" : ""} onClick={() => setGoal(n)} aria-pressed={goal === n}><b>{n}</b><span>{l}</span></button>
-            ))}
-          </div>
-          <p className="small muted" style={{ margin: 0 }}>Günde {goal} yeni formülle seçtiğin {FORMULAS.filter((f) => levels.includes(f.lv)).length} formül yaklaşık {Math.ceil(FORMULAS.filter((f) => levels.includes(f.lv)).length / goal)} günde biter. Tekrarlar ayrıca sayılır ve ilk haftalarda günde 10–20 dakika sürer.</p>
-          <h2 className="h2" style={{ marginTop: 10 }}>Ne kadar sağlam olsun?</h2>
-          <div className="stack-sm">
-            {[[0.85, "Rahat", "Daha az tekrar, %85 hatırlama"], [0.9, "Dengeli", "Önerilen, %90 hatırlama"], [0.95, "Sınav modu", "Sınav yaklaşıyorsa, %95 hatırlama"]].map(([v, t, d]) => (
-              <button key={v} className={"choice" + (ret === v ? " on" : "")} onClick={() => setRet(v)} aria-pressed={ret === v}>
-                <span><b>{t}</b><div className="small muted">{d}</div></span>
-                <span className="tick">{ret === v && <Check size={16} />}</span>
+            {GOALS.map(([g, min, tr]) => (
+              <button key={g} className={goal === g ? "on" : ""} onClick={() => { setGoal(g); play("tap", sound); }} aria-pressed={goal === g}>
+                <b>{min}</b><span>{tr}</span><span className="num" style={{ fontSize: 10 }}>{g} XP</span>
               </button>
             ))}
           </div>
-          <div className="spacer" />
-          <button className="btn primary lg block" onClick={() => onDone({ levels, newPerDay: goal, retention: ret, onboarded: true })}>Formülleri keşfet <ArrowRight size={19} /></button>
+          <div className="panel tight row" style={{ gap: 12 }}>
+            <span className="gi-sm" style={{ background: "var(--violet-soft)", color: "var(--violet)" }}><Languages size={20} /></span>
+            <span className="grow"><b className="small">İngilizce satırlar</b><div className="tiny muted">IB sınavı İngilizce: her formülün İngilizcesini altta küçükçe göreceksin. <span className="en">English lines under everything.</span></div></span>
+            <Switch on={showEn} onChange={setShowEn} label="İngilizce satırlar" />
+          </div>
+          <button className="btn gold lg block" onClick={() => go(3)}>Devam · Next <ArrowRight size={18} /></button>
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="stack onb-step fade-in">
+          <Bi tr="Nasıl çalışıyor?" en="How it works" className="h1" />
+          <div className="how">
+            <div className="how-item">
+              <span className="gi-sm" style={{ background: "var(--sky-soft)", color: "var(--sky)" }}><Rocket size={20} /></span>
+              <span><b>Yolda ilerle</b> <span className="en tiny">Follow the path</span><div className="small muted">Her ders 3–4 formül. Önce tanış, sonra oyunlarla oturt.</div></span>
+            </div>
+            <div className="how-item">
+              <span className="gi-sm" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}><Sparkles size={20} /></span>
+              <span><b>Her formül bir yıldız</b> <span className="en tiny">Every formula is a star</span><div className="small muted">Öğrendikçe gökyüzün dolar. Tekrar etmezsen yıldız söner.</div></span>
+            </div>
+            <div className="how-item">
+              <span className="gi-sm" style={{ background: "var(--mint-soft)", color: "var(--mint)" }}><Brain size={20} /></span>
+              <span><b>Tam zamanında tekrar</b> <span className="en tiny">Spaced repetition</span><div className="small muted">Pi, beynin unutmaya başladığı anı hesaplar; tekrar aralığı her seferinde uzar.</div></span>
+            </div>
+          </div>
+          <div className="panel tight" style={{ textAlign: "center" }}>
+            <div className="small muted" style={{ marginBottom: 6 }}>Dene: yıldıza dokun · tap the star</div>
+            <button className="demo-star" aria-label="Yıldızı yak"
+              onClick={(e) => { setLit((x) => Math.min(3, x + 1)); play("correct", sound); sparkleAt(e.clientX, e.clientY, 14); }}>
+              <svg viewBox="0 0 100 100" width="96" height="96">
+                <path d="M50 8 L61 39 L94 50 L61 61 L50 94 L39 61 L6 50 L39 39 Z" fill={lit ? "var(--gold)" : "none"} stroke={lit ? "var(--gold)" : "var(--star-off)"} strokeWidth="3" style={{ filter: lit ? `drop-shadow(0 0 ${6 + lit * 6}px var(--gold))` : "none", transition: "all .4s" }} />
+              </svg>
+            </button>
+            <div className="hand" style={{ color: "var(--gold)", minHeight: 28 }}>{["", "Yandı!", "Parlıyor!", "Kalıcı oldu!"][lit]}</div>
+          </div>
+          <button className="btn gold lg block" onClick={finish}><Rocket size={18} /> İlk dersime başla · Start</button>
         </div>
       )}
     </div>

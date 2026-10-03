@@ -1,13 +1,15 @@
 {
   "name": "formup",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "FormUp — matematik formüllerini aralıklı tekrarla kalıcı ezberleme uygulaması",
+  "description": "FormUp — IB Math AA SL ve temel matematik formüllerini aralıklı tekrarla, oyunlaştırılmış ve iki dilli (Türkçe + İngilizce) öğrenme uygulaması",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node --test test/*.test.mjs",
-    "smoke": "node scripts/build.mjs && node scripts/smoke.mjs"
+    "check": "node scripts/check-v2.mjs",
+    "test": "node scripts/build.mjs && node --test test/*.test.mjs",
+    "smoke": "node scripts/build.mjs && node scripts/smoke.mjs",
+    "lab": "node scripts/lab-preview.mjs"
   },
   "devDependencies": {
     "esbuild": "0.28.2",

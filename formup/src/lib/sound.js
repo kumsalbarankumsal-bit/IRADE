@@ -28,6 +28,8 @@ export const SFX = {
   flip() { tone(1200, 0, 0.05, "sine", 0.05); },
   level() { [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.09, 0.22)); },
   tick() { tone(1500, 0, 0.03, "square", 0.03); },
+  tap() { tone(990, 0, 0.04, "sine", 0.04); },
+  coin() { tone(1567.98, 0, 0.08, "square", 0.05); tone(2093, 0.07, 0.16, "square", 0.05); },
 };
 export function play(name, on) {
   if (!on) return;

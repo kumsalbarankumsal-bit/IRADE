@@ -1,5 +1,6 @@
-// Uçtan uca duman testi: derlenmiş sayfayı gerçek Chromium’da çalıştırır.
+// Uçtan uca duman testi (v2): derlenmiş sayfayı gerçek Chromium’da baştan sona kullanır.
 // cdnjs istekleri node_modules’taki aynı sürümlerle karşılanır (ağ gerekmez).
+// Kullanım: node scripts/smoke.mjs [ekran-görüntüsü-klasörü]
 import { chromium } from "playwright-core";
 import { readFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
@@ -16,8 +17,10 @@ const LOCAL = {
 const exe = process.env.CHROME || "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const browser = await chromium.launch({ executablePath: exe });
 const errors = [];
-async function newPage(opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, colorScheme: opts.dark ? "dark" : "light", hasTouch: true });
+const W = Number(process.env.W || 390);
+
+async function newPage(dark = true) {
+  const ctx = await browser.newContext({ viewport: { width: W, height: 844 }, deviceScaleFactor: 2, colorScheme: dark ? "dark" : "light", hasTouch: true, reducedMotion: "reduce" });
   const page = await ctx.newPage();
   page.on("pageerror", (e) => errors.push("pageerror: " + e.message));
   page.on("console", (m) => { if (m.type() === "error" && !/fonts\.g|Failed to load resource/.test(m.text())) errors.push("console: " + m.text()); });
@@ -31,132 +34,154 @@ async function newPage(opts = {}) {
   await page.goto("file://" + join(root, "dist/index.html"));
   return page;
 }
-const shot = (page, name) => page.screenshot({ path: join(out, name + ".png"), fullPage: false });
-const click = async (page, text) => { await page.getByRole("button", { name: text }).first().click(); await page.waitForTimeout(250); };
+const shots = [];
+const shot = async (page, name, full = false) => { await page.waitForTimeout(150); await page.screenshot({ path: join(out, name + ".png"), fullPage: full }); shots.push(name); };
+const btn = (page, name) => page.getByRole("button", { name }).first();
+const click = async (page, name) => { await btn(page, name).click(); await page.waitForTimeout(220); };
+const visible = async (loc) => (await loc.count()) > 0 && (await loc.first().isVisible());
+async function overflow(page, where) {
+  const w = await page.evaluate(() => document.documentElement.scrollWidth);
+  if (w > W + 1) errors.push(`yatay taşma (${where}): ${w}px`);
+}
 
-const page = await newPage();
-await page.waitForSelector(".onb-logo");
-await shot(page, "01-onboarding");
+/** Bir dersi/oturumu sonuna kadar oynar; her yeni adım türünün ekran görüntüsünü alır */
+async function playSession(page, prefix, { correctness = "any" } = {}) {
+  const seen = new Set();
+  for (let guard = 0; guard < 160; guard++) {
+    await page.waitForTimeout(120);
+    if (!(await visible(page.locator(".overlay")))) return "closed";
+    const take = async (k) => { if (!seen.has(k)) { seen.add(k); await shot(page, `${prefix}-${k}`); await overflow(page, `${prefix}-${k}`); } };
+    const devam = page.locator(".overlay .btn", { hasText: /^Devam/ });
+    if (await visible(devam)) {
+      if (await visible(page.locator(".overlay .stat-grid"))) { await take("summary"); await devam.first().click(); await page.waitForTimeout(400); return "done"; }
+      if (await visible(page.locator(".overlay .feedback"))) await take("feedback");
+      await devam.first().click(); continue;
+    }
+    if (await visible(btn(page, /Anladım/))) { await take("meet"); await click(page, /Anladım/); continue; }
+    if (await visible(btn(page, /Hazırım/))) { await take("show"); await click(page, /Hazırım/); continue; }
+    if (await visible(page.locator(".overlay .tf .btn:not([disabled])"))) { await take("tf"); await page.locator(".overlay .tf .btn").nth(1).click(); continue; }
+    if (await visible(page.locator(".overlay .opt:not([disabled])"))) { await take("choice"); await page.locator(".overlay .opt:not([disabled])").first().click(); continue; }
+    if (await visible(page.locator(".overlay .bank .token:not(.used):not([disabled])"))) { await take("cloze"); await page.locator(".overlay .bank .token:not(.used):not([disabled])").first().click(); continue; }
+    if (await visible(btn(page, /Cevabı göster/))) { await take("flip"); await click(page, /Cevabı göster/); await page.waitForTimeout(350); await take("flip-open"); await page.locator(".overlay .grade.g3").click(); continue; }
+    if (await visible(page.locator(".overlay .keypad"))) { await take("apply"); await page.locator('.overlay .keypad button[aria-label="1"]').click(); await page.locator('.overlay .keypad button[aria-label="Kontrol et"]').click(); continue; }
+    await page.waitForTimeout(300);
+  }
+  errors.push(`${prefix}: oturum 160 adımda bitmedi`);
+  return "stuck";
+}
+
+/* ---------------- 1) Karşılama → ilk ders ---------------- */
+const page = await newPage(true);
+await page.waitForSelector(".onb");
+await shot(page, "01-welcome"); await overflow(page, "welcome");
 await click(page, /Başlayalım/);
-await shot(page, "02-levels");
-await click(page, /Devam/);
-await click(page, /Formülleri keşfet/);
-await page.waitForSelector(".deck");
-await page.waitForTimeout(300);
-await shot(page, "03-discover");
-
-// 5 formülü öğrenme listesine ekle, 1 tanesi için "Biliyorum"
-for (let i = 0; i < 5; i++) { await page.locator(".card-foot .btn.primary").click(); await page.waitForTimeout(380); }
-await page.locator(".card-foot .btn.outline").click();
-await page.waitForTimeout(200);
-await shot(page, "04-know-check");
-await page.locator(".card-foot .opt").first().click();
-await page.waitForTimeout(2000);
-
-// Ders
-await page.locator(".qbtn").click();
+await shot(page, "02-level");
+await click(page, /^Devam/);
+await shot(page, "03-goal");
+await click(page, /^Devam/);
+await page.locator(".demo-star").click(); await page.locator(".demo-star").click();
+await shot(page, "04-how");
+await click(page, /İlk dersime başla/);
 await page.waitForSelector(".overlay");
-let guard = 0, shotIntro = false, shotMc = false, shotFlip = false, shotApply = false;
-while (guard++ < 80) {
-  await page.waitForTimeout(220);
-  if (await page.locator("text=tamamlandı").count()) break;
-  const btn = async (re) => (await page.getByRole("button", { name: re }).count()) > 0;
-  if (await btn(/^Anladım/)) { if (!shotIntro) { await shot(page, "05-intro"); shotIntro = true; } await click(page, /^Anladım/); continue; }
-  if (await btn(/^Hazırım/)) { await click(page, /^Hazırım/); continue; }
-  if (await btn(/^Devam/)) { await click(page, /^Devam/); continue; }
-  if (await page.locator(".opt:not([disabled])").count()) { if (!shotMc) { await shot(page, "06-mc"); shotMc = true; } await page.locator(".opt").first().click(); await page.waitForTimeout(300); if (!(await page.locator(".feedback").count())) continue; await shot(page, "07-feedback"); continue; }
-  if (await btn(/Cevabı göster/)) { await click(page, /Cevabı göster/); await page.waitForTimeout(500); if (!shotFlip) { await shot(page, "08-flip"); shotFlip = true; } await page.locator(".grade.g3").click(); continue; }
-  if (await page.locator(".tf .btn.good:not([disabled])").count()) { await page.locator(".tf .btn.good").click(); continue; }
-  if (await page.locator(".keypad").count()) { if (!shotApply) { await shot(page, "09-apply"); shotApply = true; } await page.locator(".keypad button", { hasText: "1" }).first().click(); await page.locator(".keypad .go").click(); continue; }
+console.log("ilk ders:", await playSession(page, "10-lesson"));
+
+/* ---------------- 2) Yol, kutlama, düğüm sayfası ---------------- */
+await page.waitForTimeout(500);
+if (await visible(page.locator(".celebrate"))) { await shot(page, "20-celebrate"); await click(page, /Harika/); }
+await page.evaluate(() => window.scrollTo(0, 0));
+await shot(page, "21-path-top"); await overflow(page, "path");
+if ((await page.locator(".toast").count()) > 1) errors.push("birden fazla bildirim üst üste");
+await shot(page, "22-path-full", true);
+const openNode = page.locator(".node.open").first();
+if (await visible(openNode)) {
+  await openNode.scrollIntoViewIfNeeded(); await openNode.click(); await page.waitForTimeout(300);
+  await shot(page, "23-node-sheet");
+  await click(page, /Başla/);
+  console.log("ikinci ders:", await playSession(page, "24-lesson2"));
+  if (await visible(page.locator(".celebrate"))) { await shot(page, "25-celebrate"); await click(page, /Harika/); }
 }
-await shot(page, "10-summary");
-await click(page, /^Bitir/);
-await page.waitForTimeout(400);
-await shot(page, "11-home");
 
-// Harita + detay
-await page.locator(".nav button", { hasText: "Harita" }).click();
-await page.waitForTimeout(200);
-await page.locator(".topic-head").first().click();
-await page.waitForTimeout(200);
-await shot(page, "12-map");
-await page.locator(".tile").first().click();
-await page.waitForTimeout(400);
-await shot(page, "13-detail");
-await page.keyboard.press("Escape");
+/* ---------------- 3) Gökyüzü + formül ayrıntısı ---------------- */
+await page.locator(".nav button", { hasText: "Gökyüzü" }).click(); await page.waitForTimeout(300);
+await shot(page, "30-sky"); await overflow(page, "sky");
+const star = page.locator(".sky-svg .star").first();
+await star.click(); await page.waitForTimeout(400);
+await shot(page, "31-detail");
+await page.locator(".sheet").evaluate((el) => el.scrollTo(0, el.scrollHeight)); await page.waitForTimeout(200);
+await shot(page, "32-detail-bottom");
+const labBtn = page.locator(".sheet .btn", { hasText: /Laboratuvarı aç/ });
+if (await visible(labBtn)) { await labBtn.click(); await page.waitForTimeout(400); await shot(page, "33-detail-lab"); }
+await page.keyboard.press("Escape"); await page.waitForTimeout(250);
 
-// Arena: eşleştir ekranı ve hız turu
-await page.locator(".nav button", { hasText: "Arena" }).click();
-await page.waitForTimeout(200);
-await shot(page, "14-arena");
-await page.locator(".game").nth(1).click();
-await page.waitForTimeout(400);
-await shot(page, "15-match");
-await page.getByRole("button", { name: "Oyundan çık" }).click();
-await page.locator(".game").nth(0).click();
-await page.waitForTimeout(400);
-for (let i = 0; i < 6; i++) { await page.locator(".tf .btn.good").click(); await page.waitForTimeout(150); }
-await shot(page, "16-speed");
-await page.getByRole("button", { name: "Oyundan çık" }).click();
-await page.locator(".game").nth(3).click();
-await page.waitForTimeout(400);
-await shot(page, "17-lab");
-await page.getByRole("button", { name: "Oyundan çık" }).click();
+/* ---------------- 4) Kitapçık ---------------- */
+await page.locator(".nav button", { hasText: "Kitapçık" }).click(); await page.waitForTimeout(300);
+await shot(page, "40-booklet"); await overflow(page, "booklet");
+await page.getByRole("tab", { name: /Temel/ }).click(); await page.waitForTimeout(200);
+await shot(page, "41-booklet-temel");
+await page.getByRole("tab", { name: /Sözlük/ }).click(); await page.waitForTimeout(200);
+await shot(page, "42-glossary");
+await page.locator(".search input").fill("asal"); await page.waitForTimeout(200);
+await page.getByRole("tab", { name: /Temel/ }).click(); await page.waitForTimeout(200);
+await shot(page, "43-search");
 
-// Profil
-await page.locator(".nav button", { hasText: "Profil" }).click();
-await page.waitForTimeout(300);
-await shot(page, "18-profile");
-const state = await page.evaluate(() => JSON.parse(localStorage.getItem("formup-state-v1")));
-console.log("öğrenilen kart:", Object.values(state.cards).filter((c) => c.reps).length, "kuyruk:", state.queue.length, "xp:", state.xp, "seri:", state.streak.cur);
+/* ---------------- 5) Oyunlar ---------------- */
+await page.locator(".nav button", { hasText: "Oyun" }).click(); await page.waitForTimeout(300);
+await shot(page, "50-arcade"); await overflow(page, "arcade");
+for (const [name, label] of [["which", /Hangi Formül/], ["terms", /Terim Avı/], ["trap", /Tuzak Avı/]]) {
+  await page.locator(".game", { hasText: label }).click(); await page.waitForTimeout(300);
+  await shot(page, `51-${name}`);
+  for (let i = 0; i < 14; i++) {
+    if (await visible(page.locator(".overlay .opt:not([disabled])"))) { await page.locator(".overlay .opt:not([disabled])").first().click(); await page.waitForTimeout(120); }
+    const nx = page.locator(".overlay .btn", { hasText: /Sonraki|Sonuç/ });
+    if (await visible(nx)) { await nx.first().click(); await page.waitForTimeout(150); }
+    if (await visible(page.locator(".overlay .btn", { hasText: "Salon" }))) break;
+  }
+  await shot(page, `52-${name}-result`);
+  await click(page, /^Salon/);
+}
+await page.locator(".game", { hasText: /Eşleştir/ }).click(); await page.waitForTimeout(300);
+await shot(page, "53-match");
+await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+await page.locator(".game", { hasText: /Sayı Atölyesi/ }).click(); await page.waitForTimeout(300);
+await shot(page, "54-numberlab");
+await page.keyboard.press("Escape"); await page.waitForTimeout(200);
+await page.locator(".game", { hasText: /Hız Turu/ }).click(); await page.waitForTimeout(300);
+for (let i = 0; i < 4; i++) { await page.locator(".overlay .tf .btn").nth(i % 2).click(); await page.waitForTimeout(150); }
+await shot(page, "55-speed");
+await page.keyboard.press("Escape"); await page.waitForTimeout(200);
 
-// Karanlık tema: yeniden yükle, aynı durum
-await page.locator(".seg button", { hasText: "Tahta" }).click();
-await page.locator(".nav button", { hasText: "Bugün" }).click();
-await page.waitForTimeout(300);
-await shot(page, "19-home-dark");
-await page.locator(".nav button", { hasText: "Keşfet" }).click();
-await page.waitForTimeout(300);
-await shot(page, "20-discover-dark");
+/* ---------------- 6) Profil ---------------- */
+await page.locator(".nav button", { hasText: "Profil" }).click(); await page.waitForTimeout(300);
+await shot(page, "60-profile"); await overflow(page, "profile");
+await shot(page, "61-profile-full", true);
 
-// Ertesi gün: tüm kartları vadesi gelmiş yap, tekrar oturumunu çalıştır
+/* ---------------- 7) Tekrar oturumu (zamanı ileri sar) ---------------- */
 await page.evaluate(() => {
-  const s = JSON.parse(localStorage.getItem("formup-state-v1"));
-  for (const c of Object.values(s.cards)) if (c.reps) { c.due = Date.now() - 1000; c.last = Date.now() - 3 * 86400000; c.s = 12; }
-  s.updatedAt = Date.now();
-  localStorage.setItem("formup-state-v1", JSON.stringify(s));
+  const s = JSON.parse(localStorage.getItem("formup-state-v2"));
+  for (const p of Object.values(s.cards)) if (p.reps) { p.due -= 3 * 86400000; p.last -= 3 * 86400000; }
+  localStorage.setItem("formup-state-v2", JSON.stringify(s));
 });
-await page.reload();
-await page.waitForSelector(".topbar");
-await page.locator(".nav button", { hasText: "Bugün" }).click();
-await page.waitForTimeout(300);
-await shot(page, "21-home-due");
-await page.getByRole("button", { name: /Tekrara başla/ }).click();
-await page.waitForSelector(".overlay");
-guard = 0;
-const seen = new Set();
-while (guard++ < 60) {
-  await page.waitForTimeout(250);
-  if (await page.locator("text=tamamlandı").count()) break;
-  const label = await page.locator(".mode-label").first().textContent().catch(() => "");
-  if (label && !seen.has(label)) { seen.add(label); await shot(page, "22-review-" + seen.size); }
-  const btn = async (re) => (await page.getByRole("button", { name: re }).count()) > 0;
-  if (await btn(/^Hazırım/)) { await click(page, /^Hazırım/); continue; }
-  if (await btn(/^Devam/)) { await click(page, /^Devam/); continue; }
-  if (await page.locator(".opt:not([disabled])").count()) { await page.locator(".opt").first().click(); continue; }
-  if (await btn(/Cevabı göster/)) { await click(page, /Cevabı göster/); await page.waitForTimeout(450); await page.locator(".grade.g3").click(); continue; }
-  if (await page.locator(".tf .btn.good:not([disabled])").count()) { await page.locator(".tf .btn.good").click(); continue; }
-  if (await page.locator(".keypad").count()) { await page.keyboard.type("12"); await page.keyboard.press("Enter"); continue; }
-}
-console.log("tekrar modları:", [...seen].join(" | "));
-await shot(page, "23-review-summary");
-await click(page, /^Bitir/);
-const after = await page.evaluate(() => JSON.parse(localStorage.getItem("formup-state-v1")));
-const futureDue = Object.values(after.cards).filter((c) => c.reps && c.due > Date.now()).length;
-console.log("tekrardan sonra ileri tarihli kart:", futureDue);
+await page.reload(); await page.waitForTimeout(600);
+await page.locator(".nav button", { hasText: "Yol" }).click(); await page.waitForTimeout(300);
+await shot(page, "70-path-due");
+const polish = page.locator(".btn", { hasText: /Yıldızları parlat/ });
+if (await visible(polish)) { await polish.click(); await page.waitForSelector(".overlay"); console.log("tekrar:", await playSession(page, "71-review")); }
+else errors.push("tekrar düğmesi görünmedi");
 
-// Yatay taşma kontrolü
-const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-console.log("yatay taşma:", overflow);
-console.log(errors.length ? "HATALAR:\n" + errors.join("\n") : "Konsol hatası yok ✓");
+/* ---------------- 8) Açık tema ---------------- */
+await page.locator(".nav button", { hasText: "Profil" }).click(); await page.waitForTimeout(300);
+await page.getByRole("button", { name: "Açık tema" }).click(); await page.waitForTimeout(300);
+await page.evaluate(() => window.scrollTo(0, 0));
+await shot(page, "80-light-profile");
+await page.locator(".nav button", { hasText: "Yol" }).click(); await page.waitForTimeout(300);
+await shot(page, "81-light-path");
+await page.locator(".nav button", { hasText: "Gökyüzü" }).click(); await page.waitForTimeout(300);
+await shot(page, "82-light-sky");
+const n2 = page.locator(".node.open, .node.done").first();
+await page.locator(".nav button", { hasText: "Yol" }).click(); await page.waitForTimeout(300);
+if (await visible(n2)) { await n2.scrollIntoViewIfNeeded(); await n2.click(); await page.waitForTimeout(250); await click(page, /Başla|Tekrar oyna/); await page.waitForTimeout(300); await shot(page, "83-light-lesson"); await page.keyboard.press("Escape"); }
+
 await browser.close();
+console.log(`${shots.length} ekran görüntüsü → ${out}`);
+if (errors.length) { console.log("HATALAR:\n" + [...new Set(errors)].join("\n")); process.exit(1); }
+console.log("Duman testi temiz ✓");

@@ -1,13 +1,13 @@
 /* Kalıcılık katmanı — üç arka uç, en iyisi önce:
    1) claude.ai artifact "db" yeteneği: kişiye özel, cihazlar arası senkron
-      (data/users/<id>/state belgesi)
+      (data/users/<id>/state2 belgesi)
    2) window.storage: Claude sohbet artifact'lerindeki kalıcı depo
    3) localStorage: tarayıcıya özel yerel kopya (her zaman yazılır, en hızlısı)
 
    Açılışta yerel kopya hemen okunur; bulut kopyası gelince hangisi
    daha yeniyse (updatedAt) o kullanılır. */
 
-const KEY = "formup-state-v1";
+const KEY = "formup-state-v2";
 
 export function readLocal() {
   try {
@@ -30,7 +30,7 @@ export async function connectRemote() {
       const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
       const uid = db && user && (await user.id());
       if (db && uid) {
-        const ref = db.doc(`data/users/${uid}/state`);
+        const ref = db.doc(`data/users/${uid}/state2`);
         return {
           kind: "cloud",
           async load() {

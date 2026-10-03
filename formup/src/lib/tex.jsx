@@ -38,7 +38,7 @@ export function texToHtml(tex, display = false) {
   if (cache.has(key)) return cache.get(key);
   let html;
   try {
-    html = window.katex.renderToString(tex, { displayMode: display, throwOnError: false, strict: "ignore", output: "html" });
+    html = window.katex.renderToString(tex, { displayMode: display, throwOnError: false, strict: "ignore", output: "html", trust: (ctx) => ctx.command === "\\htmlClass" });
   } catch (e) { html = null; }
   if (html) { if (cache.size > 4000) cache.clear(); cache.set(key, html); }
   return html;
@@ -61,9 +61,25 @@ export function Rich({ text, className = "" }) {
   useKatexReady();
   if (!text) return null;
   const parts = String(text).replace(/^~/, "").split("$");
+  // Matematiğe yapışık ekler ("$0$’dan", "($x$)") satır sonunda ayrılmasın
+  const txt = parts.map((p, i) => (i % 2 ? null : p));
+  const out = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 0) continue;
+    const prev = txt[i - 1] || "";
+    const pm = prev.match(/[^\s]{1,2}$/);
+    const pre = pm ? pm[0] : "";
+    txt[i - 1] = prev.slice(0, prev.length - pre.length);
+    const next = txt[i + 1] || "";
+    const suf = (next.match(/^[^\s]*/) || [""])[0];
+    txt[i + 1] = next.slice(suf.length);
+    out[i] = { pre, suf };
+  }
   return (
     <span className={className}>
-      {parts.map((p, i) => (i % 2 ? <Tex key={i} tex={p} /> : <React.Fragment key={i}>{p}</React.Fragment>))}
+      {parts.map((p, i) => (i % 2
+        ? (out[i].pre || out[i].suf ? <span key={i} className="nobr">{out[i].pre}<Tex tex={p} />{out[i].suf}</span> : <Tex key={i} tex={p} />)
+        : <React.Fragment key={i}>{txt[i]}</React.Fragment>))}
     </span>
   );
 }

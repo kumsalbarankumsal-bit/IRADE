@@ -1,9 +1,28 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Star, X } from "lucide-react";
-import { LEVELS_MEM } from "../lib/srs.js";
+import { Rich } from "../lib/tex.jsx";
 
-/** Halka ilerleme göstergesi */
-export function Ring({ size = 112, stroke = 11, pct = 0, color = "var(--accent)", track = "var(--surface-3)", children }) {
+/** İki dilli metin: Türkçe üstte, İngilizce altta (ayarda kapatılabilir) */
+export const EnCtx = React.createContext(true);
+export function Bi({ tr, en, className = "", inline = false, trClass = "", enClass = "" }) {
+  const show = React.useContext(EnCtx);
+  if (inline) {
+    return (
+      <span className={className}>
+        <Rich text={tr} className={trClass} />
+        {show && en ? <> <span className={"en " + enClass}><Rich text={en} /></span></> : null}
+      </span>
+    );
+  }
+  return (
+    <span className={"bi " + className}>
+      <Rich text={tr} className={trClass} />
+      {show && en ? <span className={"en " + enClass}><Rich text={en} /></span> : null}
+    </span>
+  );
+}
+
+export function Ring({ size = 112, stroke = 11, pct = 0, color = "var(--gold)", track = "var(--surface-3)", children }) {
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(1, pct));
@@ -25,30 +44,10 @@ export const Bar = ({ pct, color }) => (
   </div>
 );
 
-export const lvColor = (lv) => `var(--lv${lv})`;
-export const lvInk = (lv) => (lv >= 3 ? "var(--lv-ink-dark)" : "var(--lv-ink-light)");
-
-/** Hafıza seviyelerinin dağılımı */
-export function LevelBar({ counts }) {
-  const total = counts.reduce((a, b) => a + b, 0) || 1;
+export function Stars3({ n, size = 18 }) {
   return (
-    <div className="stack-sm">
-      <div className="lvbar">
-        {counts.map((n, i) => (i === 0 ? null : <span key={i} style={{ width: `${(n / total) * 100}%`, background: lvColor(i) }} />))}
-      </div>
-      <div className="legend">
-        {LEVELS_MEM.map((l, i) => (
-          <span key={i}><i style={{ background: lvColor(i) }} />{l.name} <b className="num">{counts[i]}</b></span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function Prio({ p }) {
-  return (
-    <span className="prio" title={["", "Ara sıra çıkar", "Sık çıkar", "Çok sık çıkar"][p]}>
-      {[1, 2, 3].map((i) => <Star key={i} size={13} fill={i <= p ? "currentColor" : "none"} strokeWidth={2} opacity={i <= p ? 1 : 0.35} />)}
+    <span className="stars3" aria-label={`${n}/3 yıldız`}>
+      {[1, 2, 3].map((i) => <Star key={i} size={size} fill={i <= n ? "currentColor" : "none"} className={i <= n ? "" : "off"} />)}
     </span>
   );
 }
@@ -57,7 +56,6 @@ export function Switch({ on, onChange, label }) {
   return <button type="button" role="switch" aria-checked={on} aria-label={label} className={"switch" + (on ? " on" : "")} onClick={() => onChange(!on)} />;
 }
 
-/** Alt sayfa (modal) */
 export function Sheet({ onClose, children, label }) {
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape") onClose(); };
@@ -67,8 +65,8 @@ export function Sheet({ onClose, children, label }) {
   return (
     <div className="scrim" onClick={onClose} role="dialog" aria-modal="true" aria-label={label}>
       <div className="sheet" onClick={(e) => e.stopPropagation()}>
-        <div className="row between">
-          <div className="grabber" style={{ margin: "2px 0 10px" }} />
+        <div className="row between" style={{ marginBottom: 6 }}>
+          <div className="grabber" />
           <button className="icon-btn plain" onClick={onClose} aria-label="Kapat"><X size={20} /></button>
         </div>
         {children}
@@ -77,16 +75,16 @@ export function Sheet({ onClose, children, label }) {
   );
 }
 
-/** Matematik sembollerinden konfeti */
-const SYM = ["π", "Σ", "√", "∞", "Δ", "θ", "∫", "e", "φ", "λ", "±", "÷", "≈", "∂"];
-export function Confetti() {
-  const bits = useMemo(() => Array.from({ length: 46 }, (_, i) => ({
+/** Matematik sembollerinden yağmur */
+const SYM = ["π", "Σ", "√", "∞", "Δ", "θ", "∫", "e", "φ", "λ", "✦", "★", "±", "∂"];
+export function Burst() {
+  const bits = useMemo(() => Array.from({ length: 48 }, (_, i) => ({
     s: SYM[i % SYM.length], left: Math.random() * 100, dur: 1.6 + Math.random() * 1.6, delay: Math.random() * 0.5,
-    size: 16 + Math.random() * 20, rot: `${(Math.random() < 0.5 ? -1 : 1) * (180 + Math.random() * 360)}deg`,
-    color: ["var(--accent)", "var(--amber)", "var(--green)", "var(--red)"][i % 4],
+    size: 16 + Math.random() * 22, rot: `${(Math.random() < 0.5 ? -1 : 1) * (180 + Math.random() * 360)}deg`,
+    color: ["var(--gold)", "var(--sky)", "var(--mint)", "var(--coral)", "var(--violet)"][i % 5],
   })), []);
   return (
-    <div className="confetti" aria-hidden="true">
+    <div className="burst" aria-hidden="true">
       {bits.map((b, i) => (
         <span key={i} style={{ left: `${b.left}%`, fontSize: b.size, color: b.color, animationDuration: `${b.dur}s`, animationDelay: `${b.delay}s`, "--rot": b.rot }}>{b.s}</span>
       ))}
@@ -94,42 +92,22 @@ export function Confetti() {
   );
 }
 
-/** Küçük çizgi grafik (son günlerin doğruluk oranı) */
-export function Spark({ values, height = 56 }) {
-  const w = 300, h = height, pad = 6;
-  const pts = values.map((v, i) => [pad + (i * (w - 2 * pad)) / Math.max(1, values.length - 1), v == null ? null : h - pad - v * (h - 2 * pad)]);
-  const valid = pts.filter((p) => p[1] != null);
-  if (valid.length < 2) return <div className="faint small">Birkaç gün çalışınca burada doğruluk eğrin çıkacak.</div>;
-  const d = valid.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
-  const area = `${d} L${valid[valid.length - 1][0].toFixed(1)},${h - pad} L${valid[0][0].toFixed(1)},${h - pad} Z`;
-  const last = valid[valid.length - 1];
-  return (
-    <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Son günlerin doğruluk oranı">
-      {[0.25, 0.5, 0.75].map((g) => <line key={g} x1={pad} x2={w - pad} y1={h - pad - g * (h - 2 * pad)} y2={h - pad - g * (h - 2 * pad)} stroke="var(--line)" strokeWidth="1" vectorEffect="non-scaling-stroke" />)}
-      <path d={area} fill="var(--accent-soft)" stroke="none" />
-      <path d={d} fill="none" stroke="var(--accent)" strokeWidth="2.2" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-      <circle cx={last[0]} cy={last[1]} r="4" fill="var(--accent)" stroke="var(--surface)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-    </svg>
-  );
+/** Bir noktadan kıvılcım saçılması (doğru cevapta) */
+export function sparkleAt(x, y, n = 12) {
+  if (typeof document === "undefined" || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches)) return;
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement("span");
+    el.className = "sparkle";
+    const a = (i / n) * Math.PI * 2, d = 40 + Math.random() * 50;
+    el.style.left = x + "px"; el.style.top = y + "px";
+    el.style.setProperty("--dx", Math.cos(a) * d + "px"); el.style.setProperty("--dy", Math.sin(a) * d + "px");
+    if (i % 3 === 1) el.style.background = "var(--sky)";
+    if (i % 3 === 2) el.style.background = "var(--mint)";
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 800);
+  }
 }
 
-/** Önümüzdeki günlerin tekrar yükü */
-export function Forecast({ values, labels }) {
-  const max = Math.max(1, ...values);
-  return (
-    <div className="forecast" role="img" aria-label="Önümüzdeki günlerdeki tekrar sayıları">
-      {values.map((v, i) => (
-        <div className="col" key={i}>
-          <span className="v">{v}</span>
-          <span className={"b" + (v ? "" : " zero")} style={{ height: `${(v / max) * 58 + 3}px` }} />
-          <span className="l">{labels[i]}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/** Basit sayaç animasyonu */
 export function useCountUp(target, ms = 700) {
   const [v, setV] = useState(0);
   useEffect(() => {
@@ -144,4 +122,38 @@ export function useCountUp(target, ms = 700) {
     return () => cancelAnimationFrame(raf);
   }, [target, ms]);
   return v;
+}
+
+/** Yıldızlı arka plan: hafif titreşen yıldızlar (canvas) */
+export function Cosmos({ dark }) {
+  const ref = React.useRef(null);
+  useEffect(() => {
+    const cv = ref.current;
+    if (!cv) return undefined;
+    const ctx = cv.getContext("2d");
+    let raf, w, h;
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const stars = Array.from({ length: 140 }, () => ({ x: Math.random(), y: Math.random(), r: Math.random() * 1.3 + 0.3, p: Math.random() * Math.PI * 2, s: 0.4 + Math.random() * 1.2 }));
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = cv.clientWidth; h = cv.clientHeight;
+      cv.width = w * dpr; cv.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    const draw = (t) => {
+      ctx.clearRect(0, 0, w, h);
+      for (const st of stars) {
+        const a = dark ? 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(st.p + (t / 1000) * st.s)) : 0.18;
+        ctx.globalAlpha = a;
+        ctx.fillStyle = dark ? "#FFFFFF" : "#2D3A7A";
+        ctx.beginPath(); ctx.arc(st.x * w, st.y * h, st.r, 0, Math.PI * 2); ctx.fill();
+      }
+      if (!reduce && dark) raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+  }, [dark]);
+  return <div className="cosmos" aria-hidden="true"><canvas ref={ref} /></div>;
 }

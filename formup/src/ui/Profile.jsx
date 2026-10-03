@@ -1,376 +1,262 @@
+/* Profil: rütbe, istatistikler, ısı haritası, Pi’nin gardırobu, rozetler ve ayarlar */
 import React, { useMemo, useState } from "react";
 import {
-  Settings, Trophy, Download, Upload, Trash2, Cloud, CloudOff, HardDrive, Plus, Minus, Copy, Check, Info,
-  Sparkles, Layers, BookOpen, Crown, Flame, Moon, Medal, Target, Brain, Award, ShieldCheck, Zap, Puzzle, Calculator, PenLine, Sun, Flag,
+  Download, Upload, Trash2, Cloud, CloudOff, HardDrive, Copy, Check, Info, Sparkles, Flame, Star, Brain, Clock, Target,
+  Crown, Layers, BookOpen, Moon, ShieldCheck, Languages, FlaskConical, Zap, Search, Orbit, Rocket, Sun,
 } from "lucide-react";
-import { Tex, Formula, Rich } from "../lib/tex.jsx";
-import { Bar, LevelBar, Forecast, Switch, Sheet } from "./common.jsx";
-import { RANKS, rankOf, ACHIEVEMENTS } from "../data/ranks.js";
-import { LEVELS, TOPICS } from "../data/topics.js";
-import { allFormulas, memLevel, learnedIds, forecast, currentR } from "../lib/srs.js";
-import { dayKey, addDaysKey, keyToTs, weekdayShort, fmtNum } from "../lib/util.js";
+import { Bi, Switch, Sheet, Bar } from "./common.jsx";
+import Pi, { OUTFITS } from "./Pi.jsx";
+import { RANKS, rankOf, ACHIEVEMENTS } from "../data/v2/meta.js";
+import { CARDS, learned, memLevel, MEM, forecast, avgRecall } from "../lib/learn.js";
+import { dayKey, addDaysKey, keyToTs, weekdayShort } from "../lib/util.js";
 
-const ACH_ICONS = { Sparkles, Layers, BookOpen, Trophy, Crown, Flame, Moon, Medal, Target, Brain, Award, ShieldCheck, Zap, Puzzle, Calculator, PenLine, Sun, Flag };
+const ACH_ICONS = { Star, Crown, Sparkles, Orbit, Rocket, Layers, BookOpen, Flame, Moon, Target, Brain, ShieldCheck, Languages, FlaskConical, Zap, Search };
+const GOALS = [[20, "Rahat", "Casual"], [40, "Normal", "Regular"], [60, "Ciddi", "Serious"], [100, "Çılgın", "Insane"]];
 
-export default function Profile({ state, now, setSettings, openEditor, onImport, onResetAll, storage }) {
-  const { cur, next, pct } = rankOf(state.xp);
-  const learned = learnedIds(state);
-  const durable = learned.filter((id) => memLevel(state.cards[id]) >= 4).length;
-  const k = dayKey(now);
-  let ok = 0, bad = 0, ms = 0, reviews = 0;
-  for (let i = 0; i < 30; i++) {
-    const d = state.days[addDaysKey(k, -i)];
-    if (d) { ok += d.ok; bad += d.bad; }
-  }
-  for (const d of Object.values(state.days)) { ms += d.ms || 0; reviews += (d.r || 0); }
-  const acc = ok + bad ? ok / (ok + bad) : null;
-
-  const counts = useMemo(() => {
+export default function Profile({ state, now, setSettings, onBuy, onWear, onImport, onResetAll, storage }) {
+  const { i: ri, cur, next, pct } = rankOf(state.xp);
+  const ids = learned(state);
+  const lv = useMemo(() => {
     const c = [0, 0, 0, 0, 0, 0];
-    const lv = new Set(state.settings.levels);
-    for (const f of allFormulas(state)) if (lv.has(f.lv) || f.t === "ozel") c[memLevel(state.cards[f.id])]++;
+    for (const x of CARDS) c[memLevel(state.cards[x.id])]++;
     return c;
-  }, [state]);
+  }, [state.cards]);
+  const k = dayKey(now);
+  let ok = 0, bad = 0, ms = 0;
+  for (let i = 0; i < 30; i++) { const d = state.days[addDaysKey(k, -i)]; if (d) { ok += d.ok || 0; bad += d.bad || 0; } }
+  for (const d of Object.values(state.days)) ms += d.ms || 0;
+  const acc = ok + bad ? ok / (ok + bad) : null;
+  const R = avgRecall(state, now);
+  const fc = forecast(state, now, 7);
+  const fmax = Math.max(1, ...fc);
 
-  const fc = forecast(state, now, 14);
-  const fcLabels = fc.map((_, i) => (i === 0 ? "Bg" : i % 2 ? "" : weekdayShort(now + i * 86400000).slice(0, 2)));
-
-  // ısı haritası: son 18 hafta (Pazartesi başlangıçlı sütunlar)
+  // ısı haritası: son 16 hafta, Pazartesi başlangıçlı sütunlar
   const dow = (new Date(keyToTs(k)).getDay() + 6) % 7;
-  const weeks = 18;
   const cells = [];
-  for (let w = weeks - 1; w >= 0; w--) {
+  for (let w = 15; w >= 0; w--) {
     for (let d = 0; d < 7; d++) {
       const off = -(w * 7 + dow - d);
       const key = addDaysKey(k, off);
       const day = state.days[key];
-      const n = day ? day.ok + day.bad : 0;
-      cells.push({ key, n, fut: off > 0 });
+      cells.push({ key, n: day ? (day.ok || 0) + (day.bad || 0) : 0, fut: off > 0 });
     }
   }
-  const lvl = (n) => (n === 0 ? "" : n < 10 ? " h1" : n < 25 ? " h2" : n < 50 ? " h3" : " h4");
-
-  const ctx = achievementCtx(state, now);
+  const heat = (n) => (n === 0 ? "" : n < 10 ? " h1" : n < 25 ? " h2" : n < 50 ? " h3" : " h4");
+  const achN = ACHIEVEMENTS.filter((a) => state.ach[a.id]).length;
 
   return (
     <div className="stack fade-in">
-      <div>
-        <div className="eyebrow">Profil</div>
-        <h1 className="h2">İlerlemen</h1>
-      </div>
-
-      <div className="card">
-        <div className="rank-card">
-          <div className="rank-badge" aria-hidden="true">{cur.mono}</div>
-          <div className="stack-sm" style={{ gap: 6, minWidth: 0 }}>
-            <div className="row between"><span className="h3">{cur.name}</span><span className="tag amber num">{state.xp} XP</span></div>
-            <Bar pct={pct} color="var(--amber)" />
-            <div className="tiny faint" style={{ fontWeight: 700 }}>{next ? `Sonraki rütbe: ${next.name} · ${next.xp - state.xp} XP kaldı` : "En yüksek rütbedesin"}</div>
+      {/* Rütbe */}
+      <div className="panel glow" style={{ overflow: "hidden" }}>
+        <div className="rank-hero">
+          <div className="rank-mono" aria-hidden="true">{cur.mono}</div>
+          <Pi mood="happy" outfit={state.settings.outfit} size={92} />
+          <div className="stack-sm" style={{ gap: 4, minWidth: 0 }}>
+            <span className="eyebrow">Rütbe {ri + 1}/{RANKS.length} · Rank</span>
+            <div className="h1">{cur.tr}</div>
+            {cur.en !== cur.tr && <div className="en small">{cur.en}</div>}
+            {cur.who && <div className="tiny muted" style={{ lineHeight: 1.4 }}>{cur.who}</div>}
           </div>
         </div>
-        <p className="small muted" style={{ margin: "12px 0 0" }}><Rich text={cur.who} /></p>
-      </div>
-
-      <div className="stat-grid">
-        <div className="stat"><b className="num">{learned.length}</b><span>Öğrenilen</span></div>
-        <div className="stat"><b className="num">{durable}</b><span>Kalıcı+</span></div>
-        <div className="stat"><b className="num">{acc == null ? "—" : `%${Math.round(acc * 100)}`}</b><span>Doğruluk 30g</span></div>
-        <div className="stat"><b className="num">{state.streak.best}</b><span>En iyi seri</span></div>
-        <div className="stat"><b className="num">{reviews}</b><span>Tekrar</span></div>
-        <div className="stat"><b className="num">{Math.round(ms / 60000)}<small style={{ fontSize: 13 }}> dk</small></b><span>Süre</span></div>
-      </div>
-
-      <div className="card">
-        <div className="row between" style={{ marginBottom: 10 }}><span className="h3">Çalışma takvimi</span><span className="tiny faint" style={{ fontWeight: 700 }}>son 18 hafta</span></div>
-        <div className="heat" aria-label="Günlük çalışma yoğunluğu">
-          {cells.map((c) => <i key={c.key} className={c.fut ? "fut" : lvl(c.n)} title={`${c.key}: ${c.n} cevap`} />)}
+        <div className="stack-sm" style={{ marginTop: 14, gap: 6 }}>
+          <Bar pct={pct} color="var(--gold)" />
+          <div className="row between tiny faint" style={{ fontWeight: 600 }}>
+            <span className="num">{state.xp} XP</span>
+            <span>{next ? `${next.tr} için ${next.xp - state.xp} XP · next: ${next.en}` : "Zirvedesin · You're at the top"}</span>
+          </div>
         </div>
       </div>
 
-      <div className="card">
-        <div className="h3" style={{ marginBottom: 10 }}>Hafıza seviyeleri</div>
-        <LevelBar counts={counts} />
+      {/* Sayılar */}
+      <div className="stat-grid">
+        <div className="stat"><b className="num">{ids.length}</b><span>Yıldız · Stars</span></div>
+        <div className="stat"><b className="num">{lv[4] + lv[5]}</b><span>Kalıcı · Lasting</span></div>
+        <div className="stat"><b className="num">{state.streak.best}</b><span>En uzun seri</span></div>
+        <div className="stat"><b className="num">{acc == null ? "—" : `%${Math.round(acc * 100)}`}</b><span>30 gün doğruluk</span></div>
+        <div className="stat"><b className="num">{R == null ? "—" : `%${Math.round(R * 100)}`}</b><span>Hatırlama · Recall</span></div>
+        <div className="stat"><b className="num">{Math.round(ms / 60000)}</b><span>Dakika · Minutes</span></div>
       </div>
 
-      <div className="card">
-        <div className="row between" style={{ marginBottom: 10 }}><span className="h3">Tekrar yükü</span><span className="tiny faint" style={{ fontWeight: 700 }}>14 gün</span></div>
-        <Forecast values={fc} labels={fcLabels} />
+      {/* Hafıza seviyeleri */}
+      <div className="panel">
+        <Bi tr="Formüllerin hafızadaki yeri" en="Where your formulas live in memory" className="h3" />
+        <div className="stack-sm" style={{ marginTop: 12, gap: 7 }}>
+          {MEM.map((m, i) => (
+            <div key={i} className="mem-row">
+              <span className="small" style={{ fontWeight: 600 }}>{m.tr} <span className="en tiny">{m.en}</span></span>
+              <Bar pct={lv[i] / Math.max(1, CARDS.length)} color={i === 0 ? "var(--surface-3)" : i < 3 ? "var(--sky)" : "var(--gold)"} />
+              <span className="num tiny faint" style={{ fontWeight: 700, textAlign: "right" }}>{lv[i]}</span>
+            </div>
+          ))}
+        </div>
+        <div className="eyebrow" style={{ marginTop: 16, marginBottom: 6 }}>Önümüzdeki 7 gün · Next 7 days</div>
+        <div className="fc">
+          {fc.map((n, i) => (
+            <div key={i} className="fc-col">
+              <span className="num tiny" style={{ fontWeight: 700 }}>{n || ""}</span>
+              <span className="fc-bar" style={{ height: `${Math.max(4, (n / fmax) * 56)}px`, background: i === 0 ? "var(--coral)" : "var(--sky)" }} />
+              <span className="tiny faint">{i === 0 ? "Bugün" : weekdayShort(now + i * 86400000)}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      <TopicMastery state={state} now={now} />
+      {/* Isı haritası */}
+      <div className="panel">
+        <div className="row between"><Bi tr="Çalışma takvimi" en="Study calendar" className="h3" /><span className="tag coral"><Flame size={13} /> {state.streak.cur} gün</span></div>
+        <div className="heat" style={{ marginTop: 12 }} aria-label="Son 16 hafta">
+          {cells.map((c) => <i key={c.key} className={(c.fut ? "fut" : "") + heat(c.n)} title={`${c.key}: ${c.n}`} />)}
+        </div>
+        <div className="tiny faint" style={{ marginTop: 6 }}>Seri dondurucu · streak freeze: <b>{state.streak.freeze}</b> (her 7 günde bir kazanılır · earned every 7 days)</div>
+      </div>
 
-      <div className="section">
-        <div className="section-head"><span className="h3">Rozetler</span><span className="tiny faint" style={{ fontWeight: 700 }}>{Object.keys(state.ach).length}/{ACHIEVEMENTS.length}</span></div>
-        <div className="ach-grid">
-          {ACHIEVEMENTS.map((a) => {
-            const I = ACH_ICONS[a.icon] || Trophy;
-            const on = !!state.ach[a.id];
+      {/* Gardırop */}
+      <div className="panel">
+        <div className="row between"><Bi tr="Pi’nin gardırobu" en="Pi's wardrobe" className="h3" /><span className="tag gold"><Sparkles size={13} /> {state.dust} ✦</span></div>
+        <p className="tiny muted" style={{ margin: "6px 0 10px" }}>Yıldız tozunu (✦) derslerden, görevlerden ve oyunlardan kazanırsın. <span className="en">Earn stardust from lessons, quests and games.</span></p>
+        <div className="wardrobe">
+          {OUTFITS.map((o) => {
+            const own = !!state.owned[o.id];
+            const on = state.settings.outfit === o.id;
+            const afford = state.dust >= o.price;
             return (
-              <div key={a.id} className={"ach" + (on ? "" : " locked")} title={a.desc}>
+              <button key={o.id} className={(on ? "on" : "") + (!own && !afford ? " locked" : "")}
+                onClick={() => (own ? onWear(o.id) : afford ? onBuy(o.id) : null)} aria-pressed={on}
+                aria-label={`${o.tr}${own ? "" : `, ${o.price} yıldız tozu`}`}>
+                <Pi mood={on ? "happy" : "idle"} outfit={o.id} size={54} />
+                <span>{o.tr}</span>
+                <span className="tiny" style={{ color: own ? "var(--mint)" : "var(--gold)", fontWeight: 700 }}>{on ? "Giyili" : own ? "Giy" : `${o.price} ✦`}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Rozetler */}
+      <div className="panel">
+        <div className="row between"><Bi tr="Rozetler" en="Badges" className="h3" /><span className="tiny faint num" style={{ fontWeight: 700 }}>{achN}/{ACHIEVEMENTS.length}</span></div>
+        <div className="ach-grid" style={{ marginTop: 12 }}>
+          {ACHIEVEMENTS.map((a) => {
+            const I = ACH_ICONS[a.icon] || Star;
+            const got = !!state.ach[a.id];
+            return (
+              <div key={a.id} className={"ach" + (got ? "" : " locked")} title={`${a.dtr} · ${a.den}`}>
                 <span className="ai"><I size={20} /></span>
-                <span>{a.name}</span>
-                <span className="tiny faint" style={{ fontWeight: 600 }}>{a.desc}</span>
+                <span>{a.tr}</span>
+                <span className="tiny faint" style={{ fontWeight: 500 }}>{a.dtr}</span>
               </div>
             );
           })}
         </div>
       </div>
 
-      <SettingsCard state={state} setSettings={setSettings} openEditor={openEditor} onImport={onImport} onResetAll={onResetAll} storage={storage} />
+      <Settings state={state} setSettings={setSettings} onImport={onImport} onResetAll={onResetAll} storage={storage} />
+
+      <div className="row" style={{ alignItems: "flex-start", padding: "0 4px" }}>
+        <Info size={17} className="faint" style={{ flex: "none", marginTop: 2 }} />
+        <p className="tiny muted" style={{ margin: 0 }}>
+          FormUp her formül için hafızanın ne kadar dayanıklı olduğunu FSRS algoritmasıyla tahmin eder ve formülü, unutmak üzereyken tam zamanında sorar.
+          Hafıza güçlendikçe sorular da zorlaşır: önce tanıma, sonra hatırlama, en sonunda gerçek bir soruda uygulama.
+          <span className="en"> FSRS schedules each formula right before you would forget it.</span>
+        </p>
+      </div>
     </div>
   );
 }
 
-function TopicMastery({ state, now }) {
-  const lv = new Set(state.settings.levels);
-  const rows = TOPICS.filter((t) => lv.has(t.lv)).map((t) => {
-    const fs = allFormulas(state).filter((f) => f.t === t.id);
-    const ls = fs.filter((f) => state.cards[f.id] && state.cards[f.id].reps);
-    const R = ls.length ? ls.reduce((s, f) => s + (currentR(state.cards[f.id], now) || 0), 0) / ls.length : null;
-    return { t, total: fs.length, learned: ls.length, R };
-  }).filter((r) => r.total);
+function Settings({ state, setSettings, onImport, onResetAll, storage }) {
+  const s = state.settings;
+  const [backup, setBackup] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+  const Row = ({ tr, en, sub, children }) => (
+    <div className="setting">
+      <span style={{ minWidth: 0 }}><b>{tr}</b> {en && <span className="en tiny">{en}</span>}{sub && <div className="tiny faint">{sub}</div>}</span>
+      {children}
+    </div>
+  );
   return (
-    <div className="card">
-      <div className="h3" style={{ marginBottom: 6 }}>Konulara göre</div>
-      <div className="stack-sm">
-        {rows.map((r) => (
-          <div key={r.t.id} className="row" style={{ gap: 10 }}>
-            <span className="small grow" style={{ fontWeight: 650, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.t.name}</span>
-            <span style={{ width: 90 }}><Bar pct={r.learned / r.total} /></span>
-            <span className="tiny num faint" style={{ width: 44, textAlign: "right", fontWeight: 750 }}>{r.learned}/{r.total}</span>
-          </div>
+    <div className="panel">
+      <Bi tr="Ayarlar" en="Settings" className="h3" />
+      <div className="eyebrow" style={{ margin: "12px 0 8px" }}>Günlük hedef · Daily goal</div>
+      <div className="goal-grid">
+        {GOALS.map(([g, tr, en]) => (
+          <button key={g} className={s.goal === g ? "on" : ""} onClick={() => setSettings({ goal: g })} aria-pressed={s.goal === g}>
+            <b>{g}</b><span>XP · {tr}</span><span className="en" style={{ fontSize: 10 }}>{en}</span>
+          </button>
         ))}
       </div>
-    </div>
-  );
-}
-
-export function achievementCtx(state, now) {
-  const learned = learnedIds(state);
-  const lv = learned.map((id) => memLevel(state.cards[id]));
-  const byTopic = {};
-  for (const f of allFormulas(state)) {
-    const o = (byTopic[f.t] = byTopic[f.t] || { n: 0, l: 0 });
-    o.n++; if (state.cards[f.id] && state.cards[f.id].reps) o.l++;
-  }
-  const t = state.days[dayKey(now)];
-  return {
-    learned: learned.length, durable: lv.filter((x) => x >= 4).length, master: lv.filter((x) => x >= 5).length,
-    topicDone: Object.values(byTopic).some((o) => o.n >= 5 && o.l === o.n),
-    hour: new Date(now).getHours(), studiedNow: !!(t && t.ok + t.bad > 0),
-  };
-}
-
-/* ---------------- Ayarlar ---------------- */
-function SettingsCard({ state, setSettings, openEditor, onImport, onResetAll, storage }) {
-  const s = state.settings;
-  const [backup, setBackup] = useState(null); // "export" | "import"
-  const [confirmReset, setConfirmReset] = useState(false);
-  const toggleLevel = (id) => {
-    const has = s.levels.includes(id);
-    const levels = has ? s.levels.filter((x) => x !== id) : [...s.levels, id];
-    if (levels.length) setSettings({ levels });
-  };
-  const retLabel = s.retention >= 0.94 ? "Sınav modu: daha sık tekrar" : s.retention <= 0.85 ? "Rahat: daha seyrek tekrar" : "Dengeli (önerilen)";
-  const MODES = [["m", "Çoktan seçmeli"], ["t", "Doğru / yanlış"], ["r", "Formülün adını bul"], ["f", "Kart çevirme (hatırlama)"], ["a", "Sayısal uygulama"]];
-  return (
-    <div className="section">
-      <div className="section-head"><span className="h3"><Settings size={18} style={{ verticalAlign: -3 }} /> Ayarlar</span></div>
-      <div className="card">
-        <div className="setting" style={{ flexDirection: "column", alignItems: "stretch" }}>
-          <span style={{ fontWeight: 700 }}>Çalıştığım seviyeler</span>
-          <div className="row wrap" style={{ gap: 6 }}>
-            {LEVELS.map((l) => <button key={l.id} className={"chip" + (s.levels.includes(l.id) ? " on" : "")} onClick={() => toggleLevel(l.id)}>{l.name}</button>)}
+      <div style={{ marginTop: 10 }}>
+        <Row tr="Tema" en="Theme" sub={s.theme === "dark" ? "Gece gökyüzü" : "Gündüz"}>
+          <div className="seg" style={{ width: 150 }}>
+            <button className={s.theme === "dark" ? "on" : ""} onClick={() => setSettings({ theme: "dark" })} aria-label="Koyu tema"><Moon size={15} /></button>
+            <button className={s.theme === "light" ? "on" : ""} onClick={() => setSettings({ theme: "light" })} aria-label="Açık tema"><Sun size={15} /></button>
           </div>
-        </div>
-        <div className="setting">
-          <span><b>Günlük yeni formül</b><div className="tiny faint">Her gün öğrenilecek en fazla yeni formül</div></span>
-          <Stepper value={s.newPerDay} min={1} max={40} onChange={(v) => setSettings({ newPerDay: v })} />
-        </div>
-        <div className="setting">
-          <span><b>Ders büyüklüğü</b><div className="tiny faint">Bir derste kaç yeni formül</div></span>
-          <Stepper value={s.batch} min={3} max={10} onChange={(v) => setSettings({ batch: v })} />
-        </div>
+        </Row>
+        <Row tr="İngilizce satırlar" en="English lines" sub="Her yerde İngilizce karşılık göster"><Switch on={s.showEn} onChange={(v) => setSettings({ showEn: v })} label="İngilizce" /></Row>
+        <Row tr="Ses" en="Sound"><Switch on={s.sound} onChange={(v) => setSettings({ sound: v })} label="Ses" /></Row>
+        <Row tr="Titreşim" en="Haptics"><Switch on={s.haptics} onChange={(v) => setSettings({ haptics: v })} label="Titreşim" /></Row>
+        <Row tr="Tüm yolu aç" en="Unlock all" sub="Kilitli dersleri de açar"><Switch on={s.unlockAll} onChange={(v) => setSettings({ unlockAll: v })} label="Tüm yolu aç" /></Row>
         <div className="setting" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-          <span className="row between"><b>Hedef hatırlama</b><span className="tag accent num">%{Math.round(s.retention * 100)}</span></span>
-          <input type="range" min="0.8" max="0.97" step="0.01" value={s.retention} onChange={(e) => setSettings({ retention: Number(e.target.value) })} aria-label="Hedef hatırlama oranı" />
-          <span className="tiny faint">{retLabel}. Bir formülü bu olasılıkla hatırlayacağın anda tekrar sorulur.</span>
+          <div className="row between"><span><b>Hedef hatırlama</b> <span className="en tiny">Target recall</span></span><b className="num">%{Math.round(s.retention * 100)}</b></div>
+          <input className="plain" type="range" min="0.8" max="0.95" step="0.01" value={s.retention} onChange={(e) => setSettings({ retention: Number(e.target.value) })} aria-label="Hedef hatırlama" />
+          <div className="tiny faint">Yüksek değer = daha sık tekrar, daha güçlü hafıza. Sınav dönemi için %92–95 iyi.</div>
         </div>
-        <div className="setting">
-          <b>Görünüm</b>
-          <div className="seg" style={{ width: 220 }}>
-            {[["auto", "Otomatik"], ["light", "Defter"], ["dark", "Tahta"]].map(([v, l]) => (
-              <button key={v} className={s.theme === v ? "on" : ""} onClick={() => setSettings({ theme: v })}>{l}</button>
-            ))}
-          </div>
-        </div>
-        <div className="setting"><b>Ses efektleri</b><Switch on={s.sound} onChange={(v) => setSettings({ sound: v })} label="Ses efektleri" /></div>
-        <div className="setting"><b>Titreşim</b><Switch on={s.haptics} onChange={(v) => setSettings({ haptics: v })} label="Titreşim" /></div>
-        <div className="setting" style={{ flexDirection: "column", alignItems: "stretch", gap: 4 }}>
-          <b>Soru türleri</b>
-          {MODES.map(([k, l]) => (
-            <div key={k} className="row between" style={{ padding: "6px 0" }}>
-              <span className="small">{l}</span>
-              <Switch on={s.modes[k]} label={l} onChange={(v) => {
-                const modes = { ...s.modes, [k]: v };
-                if (Object.values(modes).some(Boolean)) setSettings({ modes });
-              }} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="setting">
-          <span><b>Kendi formülünü ekle</b><div className="tiny faint">LaTeX ile yaz, aynı tekrar sistemine girsin</div></span>
-          <button className="btn soft sm" onClick={openEditor}><Plus size={16} /> Ekle</button>
-        </div>
-        <div className="setting">
-          <span className="row" style={{ gap: 8 }}>
-            {storage === "cloud" ? <Cloud size={18} style={{ color: "var(--green)" }} /> : storage === "storage" ? <HardDrive size={18} style={{ color: "var(--green)" }} /> : <CloudOff size={18} style={{ color: "var(--amber)" }} />}
-            <span><b>Kayıt</b><div className="tiny faint">{storage === "cloud" ? "Hesabına kaydediliyor; cihazlar arası senkron" : storage === "storage" ? "Kalıcı depoya kaydediliyor" : "Yalnızca bu tarayıcıda; ara sıra yedek al"}</div></span>
-          </span>
-        </div>
-        <div className="setting">
-          <b>Yedek</b>
+        <Row tr="Kayıt" en="Saving" sub={storage === "cloud" ? "Hesabına kaydediliyor; cihazlar arası senkron" : storage === "storage" ? "Kalıcı depoya kaydediliyor" : "Yalnızca bu tarayıcıda; ara sıra yedek al"}>
+          {storage === "cloud" ? <Cloud size={20} style={{ color: "var(--mint)" }} /> : storage === "storage" ? <HardDrive size={20} style={{ color: "var(--mint)" }} /> : <CloudOff size={20} style={{ color: "var(--gold)" }} />}
+        </Row>
+        <Row tr="Yedek" en="Backup">
           <span className="row" style={{ gap: 6 }}>
-            <button className="btn soft sm" onClick={() => setBackup("export")}><Download size={15} /> Dışa aktar</button>
-            <button className="btn soft sm" onClick={() => setBackup("import")}><Upload size={15} /> İçe aktar</button>
+            <button className="btn soft sm" onClick={() => setBackup("export")}><Download size={15} /> Al</button>
+            <button className="btn soft sm" onClick={() => setBackup("import")}><Upload size={15} /> Yükle</button>
           </span>
-        </div>
-        <div className="setting">
-          <span><b>Tüm ilerlemeyi sıfırla</b><div className="tiny faint">Geri alınamaz</div></span>
+        </Row>
+        <Row tr="Sıfırla" en="Reset" sub="Tüm ilerleme silinir, geri alınamaz">
           {confirmReset ? (
             <span className="row" style={{ gap: 6 }}>
               <button className="btn ghost sm" onClick={() => setConfirmReset(false)}>Vazgeç</button>
-              <button className="btn bad sm" onClick={() => { setConfirmReset(false); onResetAll(); }}>Evet, sıfırla</button>
+              <button className="btn coral sm" onClick={() => { setConfirmReset(false); onResetAll(); }}>Evet</button>
             </span>
-          ) : (
-            <button className="btn ghost sm" style={{ color: "var(--red)" }} onClick={() => setConfirmReset(true)}><Trash2 size={15} /> Sıfırla</button>
-          )}
-        </div>
+          ) : <button className="btn ghost sm" style={{ color: "var(--coral)" }} onClick={() => setConfirmReset(true)}><Trash2 size={15} /> Sıfırla</button>}
+        </Row>
       </div>
-
-      <div className="card flat" style={{ background: "transparent" }}>
-        <div className="row" style={{ alignItems: "flex-start" }}>
-          <Info size={18} className="faint" style={{ flex: "none", marginTop: 2 }} />
-          <p className="tiny muted" style={{ margin: 0 }}>
-            FormUp, her formül için hafıza stabilitesini ve zorluğunu FSRS-5 algoritmasıyla tahmin eder. Formül, hatırlama olasılığın hedefin altına düşmek üzereyken tekrar sorulur.
-            Hafıza güçlendikçe soru türü de zorlaşır: önce tanıma, sonra hatırlama, en sonunda gerçek bir soruda uygulama.
-          </p>
-        </div>
-      </div>
-
       {backup && <BackupSheet mode={backup} state={state} onClose={() => setBackup(null)} onImport={(d) => { onImport(d); setBackup(null); }} />}
     </div>
   );
 }
 
-function Stepper({ value, min, max, onChange }) {
-  return (
-    <span className="row" style={{ gap: 6 }}>
-      <button className="icon-btn" onClick={() => onChange(Math.max(min, value - 1))} aria-label="Azalt"><Minus size={16} /></button>
-      <b className="num" style={{ minWidth: 26, textAlign: "center", fontSize: 17 }}>{value}</b>
-      <button className="icon-btn" onClick={() => onChange(Math.min(max, value + 1))} aria-label="Artır"><Plus size={16} /></button>
-    </span>
-  );
-}
-
 function BackupSheet({ mode, state, onClose, onImport }) {
   const json = useMemo(() => JSON.stringify(state), [state]);
-  const [txt, setTxt] = useState("");
+  const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [err, setErr] = useState(null);
-  const copy = async (e) => {
-    try { await navigator.clipboard.writeText(json); setCopied(true); }
-    catch (x) { const ta = e.currentTarget.parentElement.querySelector("textarea"); ta && ta.select(); }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(json); setCopied(true); } catch (e) { setErr("Kopyalanamadı; metni elle seç."); }
   };
-  const doImport = () => {
+  const load = () => {
     try {
-      const d = JSON.parse(txt);
-      if (!d || typeof d !== "object" || !d.cards) throw new Error("FormUp yedeği değil");
+      const d = JSON.parse(text);
+      if (!d || d.v !== 2 || typeof d.cards !== "object") throw new Error("bad");
       onImport(d);
-    } catch (x) { setErr("Bu metin bir FormUp yedeği gibi görünmüyor. Dışa aktar ekranındaki metnin tamamını yapıştır."); }
+    } catch (e) { setErr("Bu bir FormUp v2 yedeği değil gibi görünüyor."); }
   };
   return (
     <Sheet onClose={onClose} label="Yedek">
-      {mode === "export" ? (
-        <div className="stack">
-          <h2 className="h2">Yedeği dışa aktar</h2>
-          <p className="small muted" style={{ margin: 0 }}>Bu metni kopyala ve bir not uygulamasında sakla. Başka bir cihazda “İçe aktar” ile geri yükleyebilirsin.</p>
-          <textarea id="backup-out" className="textarea" readOnly value={json} rows={6} onFocus={(e) => e.target.select()} />
-          <button className="btn primary block" onClick={copy}>{copied ? <><Check size={17} /> Kopyalandı</> : <><Copy size={17} /> Kopyala</>}</button>
-        </div>
-      ) : (
-        <div className="stack">
-          <h2 className="h2">Yedeği içe aktar</h2>
-          <p className="small muted" style={{ margin: 0 }}>Daha önce dışa aktardığın metni yapıştır. Mevcut ilerlemenin yerini alır.</p>
-          <textarea id="backup-in" className="textarea" value={txt} onChange={(e) => { setTxt(e.target.value); setErr(null); }} rows={6} placeholder='{"v":1, ...}' />
-          {err && <div className="small" style={{ color: "var(--red)", fontWeight: 650 }}>{err}</div>}
-          <button className="btn primary block" onClick={doImport} disabled={!txt.trim()}><Upload size={17} /> Geri yükle</button>
-        </div>
-      )}
-    </Sheet>
-  );
-}
-
-/* ---------------- Kendi formülün ---------------- */
-const SNIPPETS = [
-  ["\\dfrac{}{}", "\\dfrac{a}{b}"], ["^{}", "x^{n}"], ["_{}", "x_{1}"], ["\\sqrt{}", "\\sqrt{x}"], ["\\pi", "\\pi"], ["\\theta", "\\theta"],
-  ["\\alpha", "\\alpha"], ["\\cdot", "\\cdot"], ["\\pm", "\\pm"], ["\\le", "\\le"], ["\\int", "\\int"], ["\\sum", "\\sum"], ["\\lim_{x\\to }", "\\lim"], ["\\sin", "\\sin"], ["\\log_{}", "\\log_a"],
-];
-export function Editor({ initial, onSave, onClose }) {
-  const [f, setF] = useState(() => initial || { n: "", l: "", o: "=", r: "", k: "", w: "", h: "", x: ["", "", ""] });
-  const [focus, setFocus] = useState("l");
-  const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
-  const insert = (snip) => {
-    if (focus === "x0" || focus === "x1" || focus === "x2") {
-      const i = Number(focus[1]);
-      const x = [...f.x]; x[i] = (x[i] || "") + snip; set("x", x);
-    } else if (["l", "r"].includes(focus)) set(focus, (f[focus] || "") + snip);
-  };
-  const valid = f.n.trim() && f.l.trim() && f.r.trim();
-  const preview = { ...f, l: f.l || "?", r: f.r || "?" };
-  return (
-    <Sheet onClose={onClose} label="Kendi formülün">
       <div className="stack">
-        <h2 className="h2">{initial ? "Formülü düzenle" : "Kendi formülün"}</h2>
-        <div className="index-card" style={{ padding: "64px 12px 16px", minHeight: 120 }}>
-          <div className="formula-box"><Formula f={preview} size="lg" /></div>
-        </div>
-        <div>
-          <label className="lbl" htmlFor="ed-n">Adı</label>
-          <input id="ed-n" className="input" value={f.n} onChange={(e) => set("n", e.target.value)} placeholder="ör. Üçgende iç teğet yarıçapı" />
-        </div>
-        <div className="row wrap" style={{ gap: 4 }}>
-          {SNIPPETS.map(([snip, show]) => (
-            <button key={snip} type="button" className="chip" style={{ padding: "5px 9px" }} onMouseDown={(e) => e.preventDefault()} onClick={() => insert(snip)}><Tex tex={show} /></button>
-          ))}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 84px 1fr", gap: 8, alignItems: "end" }}>
-          <div><label className="lbl" htmlFor="ed-l">Sol taraf (LaTeX)</label><input id="ed-l" className="input mono" value={f.l} onFocus={() => setFocus("l")} onChange={(e) => set("l", e.target.value)} placeholder="a^2+b^2" /></div>
-          <div>
-            <label className="lbl" htmlFor="ed-o">Bağıntı</label>
-            <select id="ed-o" className="input" value={f.o} onChange={(e) => set("o", e.target.value)}>
-              {[["=", "="], ["\\Rightarrow", "⇒"], ["\\iff", "⇔"], ["\\le", "≤"], ["\\ge", "≥"], ["\\approx", "≈"], [":", ":"]].map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-          <div><label className="lbl" htmlFor="ed-r">Sağ taraf (cevap)</label><input id="ed-r" className="input mono" value={f.r} onFocus={() => setFocus("r")} onChange={(e) => set("r", e.target.value)} placeholder="c^2" /></div>
-        </div>
-        <div><label className="lbl" htmlFor="ed-k">Şart / tanımlar (isteğe bağlı, $..$ ile formül)</label><input id="ed-k" className="input" value={f.k} onChange={(e) => set("k", e.target.value)} placeholder="$c$: hipotenüs" /></div>
-        <div><label className="lbl" htmlFor="ed-w">Açıklama (isteğe bağlı)</label><input id="ed-w" className="input" value={f.w} onChange={(e) => set("w", e.target.value)} /></div>
-        <div><label className="lbl" htmlFor="ed-h">Hafıza kancası (isteğe bağlı)</label><input id="ed-h" className="input" value={f.h} onChange={(e) => set("h", e.target.value)} placeholder="Kısa, akılda kalan bir cümle" /></div>
-        <div>
-          <label className="lbl">Tuzak şıklar (yaygın hatalar, isteğe bağlı)</label>
-          <div className="stack-sm">
-            {[0, 1, 2].map((i) => (
-              <input key={i} id={`ed-x${i}`} className="input mono" value={f.x[i] || ""} onFocus={() => setFocus("x" + i)} onChange={(e) => { const x = [...f.x]; x[i] = e.target.value; set("x", x); }} placeholder={`Yanlış cevap ${i + 1}`} />
-            ))}
-          </div>
-        </div>
-        <button className="btn primary lg block" disabled={!valid} onClick={() => onSave({ ...f, x: f.x.map((s) => s.trim()).filter(Boolean) })}>
-          <Check size={18} /> {initial ? "Kaydet" : "Kaydet ve öğrenme listesine ekle"}
-        </button>
+        <Bi tr={mode === "export" ? "Yedeği al" : "Yedeği yükle"} en={mode === "export" ? "Export backup" : "Import backup"} className="h2" />
+        {mode === "export" ? (
+          <>
+            <p className="small muted" style={{ margin: 0 }}>Bu metni kopyalayıp güvenli bir yere yapıştır (not uygulaması, e-posta…).</p>
+            <textarea readOnly value={json} rows={6} className="code-area" onFocus={(e) => e.target.select()} aria-label="Yedek metni" />
+            <button className="btn gold block" onClick={copy}>{copied ? <><Check size={17} /> Kopyalandı</> : <><Copy size={17} /> Kopyala</>}</button>
+          </>
+        ) : (
+          <>
+            <p className="small muted" style={{ margin: 0 }}>Daha önce aldığın yedek metnini buraya yapıştır. Şu anki ilerlemenin yerine geçer.</p>
+            <textarea value={text} onChange={(e) => { setText(e.target.value); setErr(null); }} rows={6} className="code-area" placeholder='{"v":2,…}' aria-label="Yedek metni" />
+            <button className="btn gold block" onClick={load} disabled={!text.trim()}><Upload size={17} /> Yükle</button>
+          </>
+        )}
+        {err && <div className="small" style={{ color: "var(--coral)" }}>{err}</div>}
       </div>
     </Sheet>
   );
