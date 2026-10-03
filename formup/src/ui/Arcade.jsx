@@ -96,7 +96,7 @@ function Result({ G, result, state, onAgain, onExit }) {
   return (
     <div className="stack fade-in" style={{ paddingTop: 10, textAlign: "center", alignItems: "stretch" }}>
       <div className="row" style={{ justifyContent: "center" }}><Pi mood={result.record ? "party" : "happy"} outfit={state.settings.outfit} size={110} /></div>
-      <div className="eyebrow">{G.tr} · {G.en}</div>
+      <div className="eyebrow">{G.tr} · <span lang="en">{G.en}</span></div>
       <div className="display" style={{ fontSize: 56 }}>{result.display}</div>
       {result.record && <div className="hand" style={{ color: "var(--gold)", fontSize: 30 }}>Yeni rekor! · New record!</div>}
       <div className="row" style={{ justifyContent: "center", gap: 8 }}>
@@ -105,7 +105,7 @@ function Result({ G, result, state, onAgain, onExit }) {
       </div>
       {result.wrongIds && result.wrongIds.length > 0 && (
         <div className="panel" style={{ textAlign: "left" }}>
-          <div className="eyebrow" style={{ marginBottom: 8 }}>Doğruları · Correct versions</div>
+          <div className="eyebrow" style={{ marginBottom: 8 }}>Doğruları · <span lang="en">Correct versions</span></div>
           <div className="stack-sm">
             {[...new Set(result.wrongIds)].slice(0, 6).map((id) => {
               const c = BY_ID[id];

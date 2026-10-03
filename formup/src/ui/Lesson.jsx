@@ -90,12 +90,12 @@ function MeetStep({ c, onDone, onKnow, openLab, onTouch }) {
         <Facts c={c} />
         {c.c && (
           <div className="panel tight flat" style={{ background: "var(--surface-2)" }}>
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Sayılarla oyna · <span className="en">Play with numbers</span></div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Sayılarla oyna · <span lang="en" className="en">Play with numbers</span></div>
             <LiveCalc card={c} onTouch={onTouch} />
           </div>
         )}
         {c.lab && LAB_MAP[c.lab] && (
-          <button className="btn soft block" onClick={() => openLab(c.lab)}><FlaskConical size={18} /> Laboratuvarda keşfet <span className="en small">Explore in the lab</span></button>
+          <button className="btn soft block" onClick={() => openLab(c.lab)}><FlaskConical size={18} /> Laboratuvarda keşfet <span lang="en" className="en small">Explore in the lab</span></button>
         )}
       </div>
       <div className="spacer" />
@@ -117,7 +117,7 @@ function ShowStep({ c, onDone }) {
         <Name c={c} />
         <div className="formula-box"><Formula f={c} size="auto" /></div>
         <Facts c={c} full={false} />
-        <p className="small muted" style={{ margin: 0, textAlign: "center" }}>Birazdan tekrar soracağım. İçinden bir kez söyle. <span className="en">I'll ask again soon. Say it once in your head.</span></p>
+        <p className="small muted" style={{ margin: 0, textAlign: "center" }}>Birazdan tekrar soracağım. İçinden bir kez söyle. <span lang="en" className="en">I'll ask again soon. Say it once in your head.</span></p>
       </div>
       <div className="spacer" />
       <button className="btn gold lg block" onClick={() => onDone({ ok: true })}>Hazırım <ArrowRight size={18} /></button>
@@ -150,14 +150,14 @@ function ChoiceStep({ c, mode, onDone, locked, seed }) {
         {mode === "w" && (
           <div className="stack-sm">
             <Bi tr={c.q} en={c.qe} className="h3" />
-            <div className="small faint" style={{ textAlign: "center" }}>Bu durumda hangi formülü kullanırsın? <span className="en">Which formula do you use here?</span></div>
+            <div className="small faint" style={{ textAlign: "center" }}>Bu durumda hangi formülü kullanırsın? <span lang="en" className="en">Which formula do you use here?</span></div>
           </div>
         )}
         {(mode === "m" || mode === "k") && (
           <>
             <Name c={c} />
             <div className="formula-box"><Formula f={c} hideRhs size="auto" /></div>
-            {mode === "k" && <div className="small faint" style={{ textAlign: "center" }}>Biliyorsan kanıtla! <span className="en">Prove it!</span></div>}
+            {mode === "k" && <div className="small faint" style={{ textAlign: "center" }}>Biliyorsan kanıtla! <span lang="en" className="en">Prove it!</span></div>}
           </>
         )}
       </div>
@@ -242,7 +242,7 @@ function ClozeStep({ c, onDone, seed }) {
         <div className="formula-box" style={{ fontSize: 22 }}>
           <span className="formula"><Field v={c.l} /><Tex tex={c.o === ":" ? ":" : c.o || "="} /><Tex tex={skel} /></span>
         </div>
-        <div className="small faint" style={{ textAlign: "center" }}>Parçaları sırayla yerleştir. <span className="en">Place the pieces in order.</span></div>
+        <div className="small faint" style={{ textAlign: "center" }}>Parçaları sırayla yerleştir. <span lang="en" className="en">Place the pieces in order.</span></div>
       </div>
       <div className="spacer" />
       <div className="bank">
@@ -273,7 +273,7 @@ function FlipStep({ c, state, onDone, gradable, now }) {
             <Head c={c} mode="f" />
             <Name c={c} />
             <div className="formula-box"><Formula f={c} hideRhs size="auto" /></div>
-            <p className="small faint" style={{ textAlign: "center", margin: 0 }}>Cevabı aklında kur, sonra çevir. <span className="en">Think of the answer, then flip.</span></p>
+            <p className="small faint" style={{ textAlign: "center", margin: 0 }}>Cevabı aklında kur, sonra çevir. <span lang="en" className="en">Think of the answer, then flip.</span></p>
           </div>
           <div className="face back qcard">
             <Head c={c} mode="f" />
@@ -289,11 +289,11 @@ function FlipStep({ c, state, onDone, gradable, now }) {
         <button className="btn gold lg block" onClick={reveal}><Eye size={19} /> Cevabı göster</button>
       ) : (
         <div className="stack-sm fade-in">
-          <div className="small muted" style={{ textAlign: "center", fontWeight: 600 }}>Ne kadar kolay hatırladın? <span className="en">How easily did you recall it?</span></div>
+          <div className="small muted" style={{ textAlign: "center", fontWeight: 600 }}>Ne kadar kolay hatırladın? <span lang="en" className="en">How easily did you recall it?</span></div>
           <div className="grades">
             {L.map(([tr, en], i) => (
               <button key={i} className={`grade g${i + 1}`} onClick={() => grade(i + 1)}>
-                {tr}<span className="en">{en}</span>{ivls && <small>{fmtInterval(ivls[i])}</small>}
+                {tr}<span lang="en" className="en">{en}</span>{ivls && <small>{fmtInterval(ivls[i])}</small>}
               </button>
             ))}
           </div>
@@ -377,7 +377,7 @@ function TermStep({ c, onDone, seed, locked }) {
     <>
       <div className="qcard fade-in">
         <Head c={c} mode="e" />
-        <div className="small faint" style={{ textAlign: "center" }}>{q.reverse ? "İngilizcesi hangisi?" : "Türkçesi ne?"} <span className="en">{q.reverse ? "Which is the English term?" : "What does it mean in Turkish?"}</span></div>
+        <div className="small faint" style={{ textAlign: "center" }}>{q.reverse ? "İngilizcesi hangisi?" : "Türkçesi ne?"} <span lang="en" className="en">{q.reverse ? "Which is the English term?" : "What does it mean in Turkish?"}</span></div>
         <div className="qname" style={{ fontSize: 24, color: q.reverse ? "var(--ink)" : "var(--en)" }}><Rich text={q.prompt} /></div>
       </div>
       <div className="options">
@@ -407,7 +407,7 @@ function Feedback({ c, res, step, onNext, xp }) {
   return (
     <div className={"feedback " + (ok ? "ok" : "no")} role="status">
       <div className="row between">
-        <span className="verdict">{tr} <span className="en small" style={{ fontWeight: 500 }}>{en}</span></span>
+        <span className="verdict">{tr} <span lang="en" className="en small" style={{ fontWeight: 500 }}>{en}</span></span>
         {xp > 0 && <span className="tag gold">+{xp} XP</span>}
       </div>
       {step.mode === "a" && res.gen && (
@@ -603,7 +603,7 @@ function Summary({ stats, plan, state, onFinish }) {
       <div className="row" style={{ justifyContent: "center" }}><Pi mood={isTest && !pass ? "sad" : "party"} outfit={state.settings.outfit} size={120} /></div>
       <div style={{ textAlign: "center" }} className="stack-sm">
         <div className="h1">{head[0]}</div>
-        <div className="en">{head[1]}</div>
+        <div lang="en" className="en">{head[1]}</div>
       </div>
       <div className="row" style={{ justifyContent: "center" }}>
         {isTest ? (pass ? <Crown size={44} style={{ color: "var(--gold)" }} /> : null) : plan.kind === "lesson" ? <Stars3 n={stars} size={36} /> : null}
@@ -613,8 +613,8 @@ function Summary({ stats, plan, state, onFinish }) {
         <div className="stat"><b>+{stats.xp}</b><span>XP</span></div>
         <div className="stat"><b>{stats.maxCombo}</b><span>Seri · Combo</span></div>
       </div>
-      {stats.learned > 0 && <p className="small muted" style={{ textAlign: "center", margin: 0 }}>{stats.learned} yeni yıldız yandı. İlk tekrar yarın: uyku hafızayı pekiştirir. <span className="en">{stats.learned} new stars lit. First review tomorrow.</span></p>}
-      {isTest && !pass && <p className="small muted" style={{ textAlign: "center", margin: 0 }}>Geçmek için %{plan.kind === "jump" ? 85 : 80} gerekiyor. Dersleri bir kez daha gözden geçir. <span className="en">You need {plan.kind === "jump" ? 85 : 80}% to pass.</span></p>}
+      {stats.learned > 0 && <p className="small muted" style={{ textAlign: "center", margin: 0 }}>{stats.learned} yeni yıldız yandı. İlk tekrar yarın: uyku hafızayı pekiştirir. <span lang="en" className="en">{stats.learned} new stars lit. First review tomorrow.</span></p>}
+      {isTest && !pass && <p className="small muted" style={{ textAlign: "center", margin: 0 }}>Geçmek için %{plan.kind === "jump" ? 85 : 80} gerekiyor. Dersleri bir kez daha gözden geçir. <span lang="en" className="en">You need {plan.kind === "jump" ? 85 : 80}% to pass.</span></p>}
       <button className="btn gold lg block" onClick={onFinish}>Devam <ArrowRight size={18} /></button>
     </div>
   );

@@ -35,7 +35,7 @@ export default function Sky({ state, now, openCard, startReview }) {
   return (
     <div className="stack fade-in">
       <div>
-        <div className="eyebrow">Gökyüzü · <span className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Your sky</span></div>
+        <div className="eyebrow">Gökyüzü · <span lang="en" className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Your sky</span></div>
         <Bi tr="Her formül bir yıldız. Tekrar ettikçe parlar." en="Every formula is a star. Review it and it shines." className="h1" />
       </div>
       <div className="panel row" style={{ gap: 16 }}>
@@ -43,8 +43,8 @@ export default function Sky({ state, now, openCard, startReview }) {
           <div><div className="display num" style={{ fontSize: 20 }}>{R == null ? "—" : `%${Math.round(R * 100)}`}</div><div className="tiny faint">parlaklık</div></div>
         </Ring>
         <div className="grow stack-sm" style={{ gap: 6 }}>
-          <div className="small"><b className="num">{lit}</b>/{total} yıldız yandı <span className="en">stars lit</span></div>
-          <div className="small"><b className="num" style={{ color: due ? "var(--coral)" : undefined }}>{due}</b> yıldız sönüyor <span className="en">fading</span></div>
+          <div className="small"><b className="num">{lit}</b>/{total} yıldız yandı <span lang="en" className="en">stars lit</span></div>
+          <div className="small"><b className="num" style={{ color: due ? "var(--coral)" : undefined }}>{due}</b> yıldız sönüyor <span lang="en" className="en">fading</span></div>
           {due > 0 && <button className="btn gold sm" style={{ alignSelf: "flex-start" }} onClick={startReview}><Sparkles size={15} /> Parlat · Polish</button>}
         </div>
       </div>

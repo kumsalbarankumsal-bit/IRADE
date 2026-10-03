@@ -54,7 +54,7 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
           <div className="stack-sm" style={{ gap: 4, minWidth: 0 }}>
             <span className="eyebrow">Rütbe {ri + 1}/{RANKS.length} · Rank</span>
             <div className="h1">{cur.tr}</div>
-            {cur.en !== cur.tr && <div className="en small">{cur.en}</div>}
+            {cur.en !== cur.tr && <div lang="en" className="en small">{cur.en}</div>}
             {cur.who && <div className="tiny muted" style={{ lineHeight: 1.4 }}>{cur.who}</div>}
           </div>
         </div>
@@ -69,12 +69,12 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
 
       {/* Sayılar */}
       <div className="stat-grid">
-        <div className="stat"><b className="num">{ids.length}</b><span>Yıldız · Stars</span></div>
-        <div className="stat"><b className="num">{lv[4] + lv[5]}</b><span>Kalıcı · Lasting</span></div>
+        <div className="stat"><b className="num">{ids.length}</b><span>Yıldız · <span lang="en">Stars</span></span></div>
+        <div className="stat"><b className="num">{lv[4] + lv[5]}</b><span>Kalıcı · <span lang="en">Lasting</span></span></div>
         <div className="stat"><b className="num">{state.streak.best}</b><span>En uzun seri</span></div>
         <div className="stat"><b className="num">{acc == null ? "—" : `%${Math.round(acc * 100)}`}</b><span>30 gün doğruluk</span></div>
-        <div className="stat"><b className="num">{R == null ? "—" : `%${Math.round(R * 100)}`}</b><span>Hatırlama · Recall</span></div>
-        <div className="stat"><b className="num">{Math.round(ms / 60000)}</b><span>Dakika · Minutes</span></div>
+        <div className="stat"><b className="num">{R == null ? "—" : `%${Math.round(R * 100)}`}</b><span>Hatırlama · <span lang="en">Recall</span></span></div>
+        <div className="stat"><b className="num">{Math.round(ms / 60000)}</b><span>Dakika · <span lang="en">Minutes</span></span></div>
       </div>
 
       {/* Hafıza seviyeleri */}
@@ -83,7 +83,7 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
         <div className="stack-sm" style={{ marginTop: 12, gap: 7 }}>
           {MEM.map((m, i) => (
             <div key={i} className="mem-row">
-              <span className="small" style={{ fontWeight: 600 }}>{m.tr} <span className="en tiny">{m.en}</span></span>
+              <span className="small" style={{ fontWeight: 600 }}>{m.tr} <span lang="en" className="en tiny">{m.en}</span></span>
               <Bar pct={lv[i] / Math.max(1, CARDS.length)} color={i === 0 ? "var(--surface-3)" : i < 3 ? "var(--sky)" : "var(--gold)"} />
               <span className="num tiny faint" style={{ fontWeight: 700, textAlign: "right" }}>{lv[i]}</span>
             </div>
@@ -113,7 +113,7 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
       {/* Gardırop */}
       <div className="panel">
         <div className="row between"><Bi tr="Pi’nin gardırobu" en="Pi's wardrobe" className="h3" /><span className="tag gold"><Sparkles size={13} /> {state.dust} ✦</span></div>
-        <p className="tiny muted" style={{ margin: "6px 0 10px" }}>Yıldız tozunu (✦) derslerden, görevlerden ve oyunlardan kazanırsın. <span className="en">Earn stardust from lessons, quests and games.</span></p>
+        <p className="tiny muted" style={{ margin: "6px 0 10px" }}>Yıldız tozunu (✦) derslerden, görevlerden ve oyunlardan kazanırsın. <span lang="en" className="en">Earn stardust from lessons, quests and games.</span></p>
         <div className="wardrobe">
           {OUTFITS.map((o) => {
             const own = !!state.owned[o.id];
@@ -157,7 +157,7 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
         <p className="tiny muted" style={{ margin: 0 }}>
           FormUp her formül için hafızanın ne kadar dayanıklı olduğunu FSRS algoritmasıyla tahmin eder ve formülü, unutmak üzereyken tam zamanında sorar.
           Hafıza güçlendikçe sorular da zorlaşır: önce tanıma, sonra hatırlama, en sonunda gerçek bir soruda uygulama.
-          <span className="en"> FSRS schedules each formula right before you would forget it.</span>
+          <span lang="en" className="en"> FSRS schedules each formula right before you would forget it.</span>
         </p>
       </div>
     </div>
@@ -170,7 +170,7 @@ function Settings({ state, setSettings, onImport, onResetAll, storage }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const Row = ({ tr, en, sub, children }) => (
     <div className="setting">
-      <span style={{ minWidth: 0 }}><b>{tr}</b> {en && <span className="en tiny">{en}</span>}{sub && <div className="tiny faint">{sub}</div>}</span>
+      <span style={{ minWidth: 0 }}><b>{tr}</b> {en && <span lang="en" className="en tiny">{en}</span>}{sub && <div className="tiny faint">{sub}</div>}</span>
       {children}
     </div>
   );
@@ -181,7 +181,7 @@ function Settings({ state, setSettings, onImport, onResetAll, storage }) {
       <div className="goal-grid">
         {GOALS.map(([g, tr, en]) => (
           <button key={g} className={s.goal === g ? "on" : ""} onClick={() => setSettings({ goal: g })} aria-pressed={s.goal === g}>
-            <b>{g}</b><span>XP · {tr}</span><span className="en" style={{ fontSize: 10 }}>{en}</span>
+            <b>{g}</b><span>XP · {tr}</span><span lang="en" className="en" style={{ fontSize: 10 }}>{en}</span>
           </button>
         ))}
       </div>
@@ -197,7 +197,7 @@ function Settings({ state, setSettings, onImport, onResetAll, storage }) {
         <Row tr="Titreşim" en="Haptics"><Switch on={s.haptics} onChange={(v) => setSettings({ haptics: v })} label="Titreşim" /></Row>
         <Row tr="Tüm yolu aç" en="Unlock all" sub="Kilitli dersleri de açar"><Switch on={s.unlockAll} onChange={(v) => setSettings({ unlockAll: v })} label="Tüm yolu aç" /></Row>
         <div className="setting" style={{ flexDirection: "column", alignItems: "stretch", gap: 6 }}>
-          <div className="row between"><span><b>Hedef hatırlama</b> <span className="en tiny">Target recall</span></span><b className="num">%{Math.round(s.retention * 100)}</b></div>
+          <div className="row between"><span><b>Hedef hatırlama</b> <span lang="en" className="en tiny">Target recall</span></span><b className="num">%{Math.round(s.retention * 100)}</b></div>
           <input className="plain" type="range" min="0.8" max="0.95" step="0.01" value={s.retention} onChange={(e) => setSettings({ retention: Number(e.target.value) })} aria-label="Hedef hatırlama" />
           <div className="tiny faint">Yüksek değer = daha sık tekrar, daha güçlü hafıza. Sınav dönemi için %92–95 iyi.</div>
         </div>

@@ -52,13 +52,13 @@ export default function Booklet({ state, openCard }) {
   return (
     <div className="stack fade-in">
       <div>
-        <div className="eyebrow">Kitapçık · <span className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Formula booklet</span></div>
+        <div className="eyebrow">Kitapçık · <span lang="en" className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Formula booklet</span></div>
         <Bi tr="IB AA SL kitapçığı, Türkçe açıklamalı" en="The IB AA SL booklet, explained in Turkish" className="h1" />
       </div>
       <div className="seg" role="tablist">
         {[["kitap", "Kitapçık", "Booklet"], ["ib", "Ezber", "Not in booklet"], ["temel", "Temel", "Basics"], ["sozluk", "Sözlük", "Glossary"]].map(([id, tr, en]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
-            {tr}{showEn && <span className="en" style={{ display: "block", fontSize: 10 }}>{en}</span>}
+            {tr}{showEn && <span lang="en" className="en" style={{ display: "block", fontSize: 10 }}>{en}</span>}
           </button>
         ))}
       </div>
@@ -68,7 +68,7 @@ export default function Booklet({ state, openCard }) {
       </label>
 
       {tab === "ib" && !fq && (
-        <p className="small muted" style={{ margin: 0 }}>Bu formüller sınavda kitapçıkta <b>yok</b>: ezberlemen gerekiyor. <span className="en">These are not in the exam booklet, so you must know them by heart.</span></p>
+        <p className="small muted" style={{ margin: 0 }}>Bu formüller sınavda kitapçıkta <b>yok</b>: ezberlemen gerekiyor. <span lang="en" className="en">These are not in the exam booklet, so you must know them by heart.</span></p>
       )}
       {empty && (
         <div className="empty">
@@ -86,7 +86,7 @@ export default function Booklet({ state, openCard }) {
             <Bi tr={TOPICS[k][0]} en={TOPICS[k][1]} className="h2" />
             {prior.length > 0 && (
               <>
-                <div className="eyebrow" style={{ marginTop: 10 }}>Ön bilgi · <span className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Prior learning – SL</span></div>
+                <div className="eyebrow" style={{ marginTop: 10 }}>Ön bilgi · <span lang="en" className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Prior learning – SL</span></div>
                 {prior.map((c) => <Row key={c.id} c={c} state={state} openCard={openCard} />)}
               </>
             )}
@@ -110,7 +110,7 @@ export default function Booklet({ state, openCard }) {
         <div className="panel" style={{ paddingBlock: 6 }}>
           {GLOSSARY.filter((g) => !fq || fold(g.en + " " + g.tr).includes(fq)).map((g) => (
             <button key={g.en} className="bk-row" style={{ gridTemplateColumns: "1fr 1fr auto" }} onClick={() => openCard(g.cards[0])}>
-              <span className="en" style={{ fontWeight: 600 }}><Rich text={g.en} /></span>
+              <span lang="en" className="en" style={{ fontWeight: 600 }}><Rich text={g.en} /></span>
               <span className="small"><Rich text={g.tr} /></span>
               <ChevronRight size={16} className="faint" />
             </button>

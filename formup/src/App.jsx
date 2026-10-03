@@ -339,8 +339,8 @@ function Celebrate({ c, state, onClose }) {
         <div className="rank-mono big" aria-hidden="true">{c.rank.mono}</div>
         <span className="eyebrow">Yeni rütbe · New rank</span>
         <div className="display" style={{ fontSize: 34 }}>{c.rank.tr}</div>
-        {c.rank.en !== c.rank.tr && <div className="en">{c.rank.en}</div>}
-        {c.rank.who && <p className="muted" style={{ margin: 0 }}>{c.rank.who} <span className="en">{c.rank.whoEn}</span></p>}
+        {c.rank.en !== c.rank.tr && <div lang="en" className="en">{c.rank.en}</div>}
+        {c.rank.who && <p className="muted" style={{ margin: 0 }}>{c.rank.who} <span lang="en" className="en">{c.rank.whoEn}</span></p>}
       </>
     );
   } else if (c.kind === "ach") {
@@ -350,7 +350,7 @@ function Celebrate({ c, state, onClose }) {
         {c.list.map((a) => (
           <div key={a.id} className="stack-sm" style={{ gap: 2 }}>
             <div className="display" style={{ fontSize: 28 }}><Award size={26} style={{ color: "var(--gold)", verticalAlign: -3 }} /> {a.tr}</div>
-            <div className="en">{a.en}</div>
+            <div lang="en" className="en">{a.en}</div>
             <div className="small muted">{a.dtr}</div>
           </div>
         ))}
@@ -360,9 +360,9 @@ function Celebrate({ c, state, onClose }) {
   } else {
     body = (
       <>
-        <span className="eyebrow">{c.unit.tr} · {c.unit.en}</span>
+        <span className="eyebrow">{c.unit.tr} · <span lang="en">{c.unit.en}</span></span>
         <div className="display" style={{ fontSize: 32 }}>{c.kind === "jump" ? "Üniteyi atladın!" : "Taç senin!"}</div>
-        <div className="en">{c.kind === "jump" ? "You tested out of the unit!" : "You won the crown!"}</div>
+        <div lang="en" className="en">{c.kind === "jump" ? "You tested out of the unit!" : "You won the crown!"}</div>
         <p className="small muted" style={{ margin: 0 }}>{c.kind === "jump" ? "Bu ünitenin formülleri tekrar takvimine “biliyor” olarak girdi." : "Ünitenin formülleri artık tam senin. Tekrarlar onları kalıcı yapacak."}</p>
         <span className="tag gold" style={{ alignSelf: "center" }}>+{c.dust} ✦</span>
       </>

@@ -58,7 +58,7 @@ export default function Detail({ id, state, now, onClose, onStudy, onReset, onSu
         <Facts c={c} />
         {c.c && (
           <div className="panel tight">
-            <div className="eyebrow" style={{ marginBottom: 6 }}>Sayılarla oyna · <span className="en">Play with numbers</span></div>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>Sayılarla oyna · <span lang="en" className="en">Play with numbers</span></div>
             <LiveCalc card={c} />
           </div>
         )}
@@ -95,7 +95,7 @@ export default function Detail({ id, state, now, onClose, onStudy, onReset, onSu
                 </div>
               )}
             </div>
-          ) : <p className="small muted" style={{ margin: "8px 0 0" }}>Henüz öğrenmedin; yolda sırası gelince öğreneceksin ya da hemen dene. <span className="en">Not learned yet.</span></p>}
+          ) : <p className="small muted" style={{ margin: "8px 0 0" }}>Henüz öğrenmedin; yolda sırası gelince öğreneceksin ya da hemen dene. <span lang="en" className="en">Not learned yet.</span></p>}
         </div>
         <button className="btn gold lg block" onClick={() => onStudy(id)}><Play size={18} fill="currentColor" /> Şimdi çalış · Study now</button>
         <div className="row wrap" style={{ gap: 6 }}>

@@ -10,14 +10,14 @@ export function Bi({ tr, en, className = "", inline = false, trClass = "", enCla
     return (
       <span className={className}>
         <Rich text={tr} className={trClass} />
-        {show && en ? <> <span className={"en " + enClass}><Rich text={en} /></span></> : null}
+        {show && en ? <> <span lang="en" className={"en " + enClass}><Rich text={en} /></span></> : null}
       </span>
     );
   }
   return (
     <span className={"bi " + className}>
       <Rich text={tr} className={trClass} />
-      {show && en ? <span className={"en " + enClass}><Rich text={en} /></span> : null}
+      {show && en ? <span lang="en" className={"en " + enClass}><Rich text={en} /></span> : null}
     </span>
   );
 }

@@ -35,10 +35,10 @@ export default function Onboarding({ state, onDone }) {
           <div className="stack-sm" style={{ textAlign: "center" }}>
             <div className="hand" style={{ color: "var(--gold)", fontSize: 30 }}>Selam! Ben Pi.</div>
             <h1 className="display" style={{ fontSize: 30, margin: 0 }}>Matematiği sevmek zorunda değilsin.</h1>
-            <div className="en">You don't have to love math.</div>
+            <div lang="en" className="en">You don't have to love math.</div>
             <p className="muted" style={{ margin: "6px 0 0" }}>
               Sadece formülleri <b>tam unutacağın anda</b> sana geri getireceğim. Günde birkaç dakika, bir oyun gibi.
-              Hiçbir şey bildiğini varsaymıyorum. <span className="en">I'll bring each formula back right before you forget it.</span>
+              Hiçbir şey bildiğini varsaymıyorum. <span lang="en" className="en">I'll bring each formula back right before you forget it.</span>
             </p>
           </div>
           <button className="btn gold lg block" onClick={() => go(1)}>Başlayalım · Let's go <ArrowRight size={18} /></button>
@@ -53,7 +53,7 @@ export default function Onboarding({ state, onDone }) {
               <button key={l.id} className={"choice" + (level === l.id ? " on" : "")} onClick={() => { setLevel(l.id); play("tap", sound); }} aria-pressed={level === l.id}>
                 <span className="choice-glyph"><Tex tex={l.glyph} /></span>
                 <span className="stack-sm" style={{ gap: 2 }}>
-                  <b>{l.tr}</b><span className="en small">{l.en}</span>
+                  <b>{l.tr}</b><span lang="en" className="en small">{l.en}</span>
                   <span className="small muted">{l.dtr}</span>
                 </span>
                 <span className="tick">{level === l.id && <Check size={16} strokeWidth={3} />}</span>
@@ -76,7 +76,7 @@ export default function Onboarding({ state, onDone }) {
           </div>
           <div className="panel tight row" style={{ gap: 12 }}>
             <span className="gi-sm" style={{ background: "var(--violet-soft)", color: "var(--violet)" }}><Languages size={20} /></span>
-            <span className="grow"><b className="small">İngilizce satırlar</b><div className="tiny muted">IB sınavı İngilizce: her formülün İngilizcesini altta küçükçe göreceksin. <span className="en">English lines under everything.</span></div></span>
+            <span className="grow"><b className="small">İngilizce satırlar</b><div className="tiny muted">IB sınavı İngilizce: her formülün İngilizcesini altta küçükçe göreceksin. <span lang="en" className="en">English lines under everything.</span></div></span>
             <Switch on={showEn} onChange={setShowEn} label="İngilizce satırlar" />
           </div>
           <button className="btn gold lg block" onClick={() => go(3)}>Devam · Next <ArrowRight size={18} /></button>
@@ -89,15 +89,15 @@ export default function Onboarding({ state, onDone }) {
           <div className="how">
             <div className="how-item">
               <span className="gi-sm" style={{ background: "var(--sky-soft)", color: "var(--sky)" }}><Rocket size={20} /></span>
-              <span><b>Yolda ilerle</b> <span className="en tiny">Follow the path</span><div className="small muted">Her ders 3–4 formül. Önce tanış, sonra oyunlarla oturt.</div></span>
+              <span><b>Yolda ilerle</b> <span lang="en" className="en tiny">Follow the path</span><div className="small muted">Her ders 3–4 formül. Önce tanış, sonra oyunlarla oturt.</div></span>
             </div>
             <div className="how-item">
               <span className="gi-sm" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}><Sparkles size={20} /></span>
-              <span><b>Her formül bir yıldız</b> <span className="en tiny">Every formula is a star</span><div className="small muted">Öğrendikçe gökyüzün dolar. Tekrar etmezsen yıldız söner.</div></span>
+              <span><b>Her formül bir yıldız</b> <span lang="en" className="en tiny">Every formula is a star</span><div className="small muted">Öğrendikçe gökyüzün dolar. Tekrar etmezsen yıldız söner.</div></span>
             </div>
             <div className="how-item">
               <span className="gi-sm" style={{ background: "var(--mint-soft)", color: "var(--mint)" }}><Brain size={20} /></span>
-              <span><b>Tam zamanında tekrar</b> <span className="en tiny">Spaced repetition</span><div className="small muted">Pi, beynin unutmaya başladığı anı hesaplar; tekrar aralığı her seferinde uzar.</div></span>
+              <span><b>Tam zamanında tekrar</b> <span lang="en" className="en tiny">Spaced repetition</span><div className="small muted">Pi, beynin unutmaya başladığı anı hesaplar; tekrar aralığı her seferinde uzar.</div></span>
             </div>
           </div>
           <div className="panel tight" style={{ textAlign: "center" }}>

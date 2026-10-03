@@ -33,7 +33,7 @@ export function DailyCard({ state, now, onClaim, onChest }) {
         </div>
       </div>
       <div style={{ marginTop: 12 }}>
-        <div className="eyebrow" style={{ marginBottom: 4 }}>Günlük görevler · <span className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Daily quests</span></div>
+        <div className="eyebrow" style={{ marginBottom: 4 }}>Günlük görevler · <span lang="en" className="en" style={{ textTransform: "none", letterSpacing: 0 }}>Daily quests</span></div>
         {qs.map((x) => {
           const I = QICON[x.icon] || Star;
           return (
@@ -79,7 +79,7 @@ export default function Path({ state, now, openNode, startReview, onClaim, onChe
 
       {due > 0 && (
         <button className="btn gold lg block" onClick={startReview} style={{ justifyContent: "space-between" }}>
-          <span className="row" style={{ gap: 10 }}><Sparkles size={20} /> <span style={{ textAlign: "left" }}>Yıldızları parlat<span className="en small" style={{ display: "block", color: "inherit", opacity: .75 }}>Polish your stars</span></span></span>
+          <span className="row" style={{ gap: 10 }}><Sparkles size={20} /> <span style={{ textAlign: "left" }}>Yıldızları parlat<span lang="en" className="en small" style={{ display: "block", color: "inherit", opacity: .75 }}>Polish your stars</span></span></span>
           <span className="display num" style={{ fontSize: 20 }}>{due}</span>
         </button>
       )}
@@ -102,7 +102,7 @@ export default function Path({ state, now, openNode, startReview, onClaim, onChe
               <div style={{ padding: "6px 2px 8px" }}>
                 <div className="eyebrow" style={{ color: "var(--gold)" }}>{sec.track.id === "temel" ? "Bölüm 1" : sec.track.id === "kitap" ? "Bölüm 2 · IB" : "IB+"}</div>
                 <h2 className="h1" style={{ fontSize: 22 }}>{sec.track.tr}</h2>
-                <div className="en small">{sec.track.en}</div>
+                <div lang="en" className="en small">{sec.track.en}</div>
                 <p className="small muted" style={{ margin: "6px 0 0" }}>{sec.track.blurb}</p>
               </div>
             )}
@@ -140,7 +140,7 @@ export default function Path({ state, now, openNode, startReview, onClaim, onChe
                         {lesson && lesson.stars && !n.boss ? <span className="crown"><Stars3 n={lesson.stars} size={10} /></span> : null}
                       </button>
                       <span className="node-label">
-                        {n.boss ? <><span>Ünite sınavı</span><span className="en">Unit test</span></> : <><span><Rich text={first.n} /></span></>}
+                        {n.boss ? <><span>Ünite sınavı</span><span lang="en" className="en">Unit test</span></> : <><span><Rich text={first.n} /></span></>}
                       </span>
                       {isCur && status === "open" && (
                         <span className="pi-on-path" style={{ left: OFFS[i % OFFS.length] > 0 ? -58 : 112, top: 4 }}>
@@ -171,7 +171,7 @@ export function NodeSheet({ state, now, target, onStart, onClose }) {
       <Sheet onClose={onClose} label="Atlama sınavı">
         <div className="stack">
           <div className="row" style={{ gap: 12 }}><Pi mood="think" outfit={state.settings.outfit} size={64} /><Bi tr="Bu üniteyi zaten biliyor musun?" en="Already know this unit?" className="h2" /></div>
-          <p className="small muted" style={{ margin: 0 }}>{sec.unit.tr} ünitesinden 8 soru. %85 ve üstü yaparsan üniteyi atlarsın; formüller “biliyor” olarak tekrar takvimine girer. <span className="en">8 questions. Score 85%+ to skip the unit.</span></p>
+          <p className="small muted" style={{ margin: 0 }}>{sec.unit.tr} ünitesinden 8 soru. %85 ve üstü yaparsan üniteyi atlarsın; formüller “biliyor” olarak tekrar takvimine girer. <span lang="en" className="en">8 questions. Score 85%+ to skip the unit.</span></p>
           <button className="btn gold lg block" onClick={() => onStart({ kind: "jump", unit: sec.unit.id })}><Rocket size={18} /> Atlama sınavına başla</button>
         </div>
       </Sheet>
@@ -185,12 +185,12 @@ export function NodeSheet({ state, now, target, onStart, onClose }) {
     <Sheet onClose={onClose} label="Ders">
       <div className="stack">
         <div className="stack-sm">
-          <span className="eyebrow">{sec.unit.tr} · <span className="en">{sec.unit.en}</span></span>
+          <span className="eyebrow">{sec.unit.tr} · <span lang="en" className="en">{sec.unit.en}</span></span>
           {n.boss ? <Bi tr="Ünite sınavı: taçı kazan" en="Unit test: win the crown" className="h1" /> : <Bi tr={`Ders ${n.k}`} en={`Lesson ${n.k}`} className="h1" />}
           {lesson && lesson.stars && <Stars3 n={lesson.stars} size={22} />}
         </div>
         {n.boss ? (
-          <p className="small muted" style={{ margin: 0 }}>Ünitenin tüm formüllerinden 10 karışık soru. %80 ile taç ve 40 ✦. <span className="en">10 mixed questions. 80% wins the crown and 40 ✦.</span></p>
+          <p className="small muted" style={{ margin: 0 }}>Ünitenin tüm formüllerinden 10 karışık soru. %80 ile taç ve 40 ✦. <span lang="en" className="en">10 mixed questions. 80% wins the crown and 40 ✦.</span></p>
         ) : (
           <div className="panel tight flat stack-sm" style={{ background: "var(--surface-2)" }}>
             {n.cards.map((id) => {
@@ -207,7 +207,7 @@ export function NodeSheet({ state, now, target, onStart, onClose }) {
         )}
         {status === "locked" ? (
           <div className="stack-sm">
-            <p className="small muted" style={{ margin: 0 }}>Bu durak henüz kilitli: önce önceki dersi bitir. <span className="en">Locked: finish the previous lesson first.</span></p>
+            <p className="small muted" style={{ margin: 0 }}>Bu durak henüz kilitli: önce önceki dersi bitir. <span lang="en" className="en">Locked: finish the previous lesson first.</span></p>
             {sec.lessons[0] && !nodeUnlocked(state, sec.lessons[0]) && <button className="btn soft block" onClick={() => onStart({ kind: "jump", unit: n.unit })}><Rocket size={17} /> Üniteyi atla (8 soru)</button>}
           </div>
         ) : (
