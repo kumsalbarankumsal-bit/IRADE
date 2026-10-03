@@ -35,7 +35,8 @@ function place(items, obstacles, box) {
     let pick = null, best = null;
     for (const [idx, [ax, ay]] of it.at.entries()) {
       const x = clamp(ax, box.x0 + it.w / 2, box.x1 - it.w / 2), y = clamp(ay, box.y0 + it.h / 2, box.y1 - it.h / 2);
-      const r = { x0: x - it.w / 2, y0: y - it.h / 2, x1: x + it.w / 2, y1: y + it.h / 2 };
+      const pd = it.pad || 0;
+      const r = { x0: x - it.w / 2 - pd, y0: y - it.h / 2, x1: x + it.w / 2 + pd, y1: y + it.h / 2 };
       const o = ov(r);
       if (o === 0) { pick = { x, y, r }; break; }
       const score = o + idx * 4;
@@ -159,11 +160,11 @@ function Scene({ a, t, lo, hi, setT }) {
     const w = 116, h = 25;
     const xl = sx(XMIN) + w / 2 + 6, xr = sx(XMAX) - w / 2 - 6, yb0 = sy(0);
     const ord = up ? [xl, xr] : [xr, xl];
-    items.push({ key: "ay", kind: "asy", line: "y = 0", color: "var(--gold)", w, h, must: true,
+    items.push({ key: "ay", kind: "asy", line: "y = 0", color: "var(--gold)", w, h, pad: 7, must: true,
       at: [[ord[0], yb0 + 30], [ord[0], yb0 - 20], [ord[1], yb0 + 30], [ord[1], yb0 - 20], [ord[0], yb0 + 56], [ord[1], yb0 + 56], [ord[0], yb0 - 46]] });
     const x0p = sx(0), yt0 = sy(YMAX) + h / 2 + 6, ybt = sy(YMIN) - h / 2 - 6;
     const vord = up ? [ybt, yt0] : [yt0, ybt];
-    items.push({ key: "ax", kind: "asy", line: "x = 0", color: "var(--sky)", w, h, must: true,
+    items.push({ key: "ax", kind: "asy", line: "x = 0", color: "var(--sky)", w, h, pad: 7, must: true,
       at: [[x0p + w / 2 + 8, vord[0]], [x0p - w / 2 - 22, vord[0]], [x0p + w / 2 + 8, vord[1]], [x0p - w / 2 - 22, vord[1]],
         ...[5.1, 4.4, 3.6, -1.6, -2.3].flatMap((v) => [[x0p + w / 2 + 14, sy(v)], [x0p - w / 2 - 24, sy(v)], [x0p + w / 2 + 34, sy(v)]])] });
   }
