@@ -33,7 +33,7 @@ export default function Onboarding({ state, onDone }) {
             <Pi mood="party" outfit="none" size={150} />
           </div>
           <div className="stack-sm" style={{ textAlign: "center" }}>
-            <div className="hand" style={{ color: "var(--gold)", fontSize: 30 }}>Selam! Ben Pi.</div>
+            <div className="hand" style={{ color: "var(--gold-text)", fontSize: 30 }}>Selam! Ben Pi.</div>
             <h1 className="display" style={{ fontSize: 30, margin: 0 }}>Matematiği sevmek zorunda değilsin.</h1>
             <div lang="en" className="en">You don't have to love math.</div>
             <p className="muted" style={{ margin: "6px 0 0" }}>
@@ -92,7 +92,7 @@ export default function Onboarding({ state, onDone }) {
               <span><b>Yolda ilerle</b> <span lang="en" className="en tiny">Follow the path</span><div className="small muted">Her ders 3–4 formül. Önce tanış, sonra oyunlarla oturt.</div></span>
             </div>
             <div className="how-item">
-              <span className="gi-sm" style={{ background: "var(--gold-soft)", color: "var(--gold)" }}><Sparkles size={20} /></span>
+              <span className="gi-sm" style={{ background: "var(--gold-soft)", color: "var(--gold-text)" }}><Sparkles size={20} /></span>
               <span><b>Her formül bir yıldız</b> <span lang="en" className="en tiny">Every formula is a star</span><div className="small muted">Öğrendikçe gökyüzün dolar. Tekrar etmezsen yıldız söner.</div></span>
             </div>
             <div className="how-item">
@@ -108,7 +108,7 @@ export default function Onboarding({ state, onDone }) {
                 <path d="M50 8 L61 39 L94 50 L61 61 L50 94 L39 61 L6 50 L39 39 Z" fill={lit ? "var(--gold)" : "none"} stroke={lit ? "var(--gold)" : "var(--star-off)"} strokeWidth="3" style={{ filter: lit ? `drop-shadow(0 0 ${6 + lit * 6}px var(--gold))` : "none", transition: "all .4s" }} />
               </svg>
             </button>
-            <div className="hand" style={{ color: "var(--gold)", minHeight: 28 }}>{["", "Yandı!", "Parlıyor!", "Kalıcı oldu!"][lit]}</div>
+            <div className="hand" style={{ color: "var(--gold-text)", minHeight: 28 }}>{["", "Yandı!", "Parlıyor!", "Kalıcı oldu!"][lit]}</div>
           </div>
           <button className="btn gold lg block" onClick={finish}><Rocket size={18} /> İlk dersime başla · Start</button>
         </div>

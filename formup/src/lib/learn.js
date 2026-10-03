@@ -28,9 +28,9 @@ export function freshState() {
     settings: { goal: 40, retention: 0.9, theme: "dark", sound: true, haptics: true, showEn: true, unlockAll: false, onboarded: false, outfit: "none", start: "zero" },
     cards: {}, lessons: {}, units: {}, open: {}, days: {}, xp: 0, dust: 0,
     streak: { cur: 0, best: 0, last: null, freeze: 0 },
-    ach: {}, best: { speed: 0, match: 0, trap: 0, lab: 0, which: 0, terms: 0 },
+    ach: {}, best: { speed: null, match: null, trap: null, lab: null, which: null, terms: null },
     stats: { trapsCaught: 0, sessions: 0, perfect: 0, games: 0, terms: 0 },
-    owned: { none: true }, labsSeen: {}, quests: null,
+    owned: { none: true }, labsSeen: {}, labsDay: {}, quests: null,
   };
 }
 export function migrate(s) {
@@ -41,7 +41,7 @@ export function migrate(s) {
     settings: { ...f.settings, ...(s.settings || {}) },
     streak: { ...f.streak, ...(s.streak || {}) }, best: { ...f.best, ...(s.best || {}) }, stats: { ...f.stats, ...(s.stats || {}) },
     cards: s.cards || {}, lessons: s.lessons || {}, units: s.units || {}, open: s.open || {}, days: s.days || {},
-    ach: s.ach || {}, owned: { none: true, ...(s.owned || {}) }, labsSeen: s.labsSeen || {},
+    ach: s.ach || {}, owned: { none: true, ...(s.owned || {}) }, labsSeen: s.labsSeen || {}, labsDay: s.labsDay || {},
   };
 }
 
@@ -57,11 +57,15 @@ export function nodeUnlocked(s, node) {
   if (s.settings.unlockAll || s.open[node.unit]) return true;
   const i = NODES.indexOf(node);
   if (i <= 0) return true;
-  return nodeDone(s, NODES[i - 1]) || nodeDone(s, node);
+  const prev = NODES[i - 1];
+  // atlama sınavıyla geçilen ünite (taç yok ama yol açık)
+  const jumped = prev.boss && s.units[prev.unit] && s.units[prev.unit].jumped;
+  return nodeDone(s, prev) || !!jumped || nodeDone(s, node);
 }
+/** Bugün tekrar edilmesi gereken kart mı? (gradeCard’ın günlük kuralıyla tutarlı) */
+export const isDue = (p, now) => !!(p && p.reps && !p.sus && p.due < nextDayStart(now));
 export function nodeFading(s, node, now) {
-  const end = nextDayStart(now);
-  return node.cards.some((id) => { const p = s.cards[id]; return p && p.reps && !p.sus && p.due < end; });
+  return node.cards.some((id) => isDue(s.cards[id], now));
 }
 export function nodeStatus(s, node, now) {
   if (nodeDone(s, node)) return nodeFading(s, node, now) ? "fade" : "done";
@@ -88,9 +92,8 @@ export function applyOnboarding(s, patch) {
 
 /* ---------------- Sayımlar ---------------- */
 export function dueIds(s, now) {
-  const end = nextDayStart(now);
   return Object.entries(s.cards)
-    .filter(([id, p]) => p.reps && !p.sus && p.due < end && BY_ID[id])
+    .filter(([id, p]) => isDue(p, now) && BY_ID[id])
     .map(([id]) => id)
     .sort((a, b) => (currentR(s.cards[a], now) ?? 0) - (currentR(s.cards[b], now) ?? 0));
 }
@@ -129,8 +132,9 @@ function weighted(c, w, r) {
 }
 export function reviewMode(c, p, r = Math.random) {
   const s = p ? p.s : 0;
-  if (s < 3) return weighted(c, { m: 30, t: 14, z: 24, r: 8, e: 8, f: 16 }, r);
-  if (s < 10) return weighted(c, { z: 20, f: 30, a: 22, w: 14, m: 8, e: 6 }, r);
+  // "e" (terim) formülü sınamadığı için tekrar zamanlamasında kullanılmaz; derslerde alıştırma olarak var
+  if (s < 3) return weighted(c, { m: 32, t: 16, z: 26, r: 8, f: 18 }, r);
+  if (s < 10) return weighted(c, { z: 22, f: 32, a: 22, w: 14, m: 10 }, r);
   return weighted(c, { f: 40, a: 26, w: 22, z: 12 }, r);
 }
 
@@ -194,12 +198,26 @@ export function whichOptions(c, r = Math.random) {
   for (const o of others(c, r, (o) => o.r !== c.r && o.l !== c.l)) { if (opts.length >= 3) break; opts.push(o); }
   return shuffle([{ c, ok: true }, ...opts.map((o) => ({ c: o, ok: false }))], r);
 }
+/** Sözlükten, ekranda birbirinden ve doğru cevaptan farklı görünen 3 çeldirici */
+export function distinctTerms(right, show, ok, r = Math.random, n = 3) {
+  const seen = new Set([right.toLowerCase()]);
+  const out = [];
+  for (const g of shuffle(GLOSSARY, r)) {
+    const v = show(g);
+    if (!ok(g) || seen.has(v.toLowerCase())) continue;
+    seen.add(v.toLowerCase());
+    out.push(v);
+    if (out.length === n) break;
+  }
+  return out;
+}
 /** Terim sorusu: İngilizce → Türkçe ya da tersi */
 export function termQuestion(c, r = Math.random) {
   const [en, tr] = pick(c.t, r);
   const reverse = r() < 0.4;
-  const pool = shuffle(GLOSSARY.filter((g) => g.en.toLowerCase() !== en.toLowerCase() && g.tr !== tr), r).slice(0, 3);
-  const opts = shuffle([{ v: reverse ? en : tr, ok: true }, ...pool.map((g) => ({ v: reverse ? g.en : g.tr, ok: false }))], r);
+  const right = reverse ? en : tr;
+  const others = distinctTerms(right, (g) => (reverse ? g.en : g.tr), (g) => g.en.toLowerCase() !== en.toLowerCase() && g.tr.toLowerCase() !== tr.toLowerCase(), r);
+  const opts = shuffle([{ v: right, ok: true }, ...others.map((v) => ({ v, ok: false }))], r);
   return { prompt: reverse ? tr : en, reverse, opts, en, tr };
 }
 export function clozeBank(c, r = Math.random) {
@@ -220,7 +238,7 @@ export function logAnswer(s, now, { cid, mode, ok, ms = 0, xp = 0, grade = null,
   return {
     ...s,
     cards: cid ? { ...s.cards, [cid]: { ...p, h } } : s.cards,
-    days: bump(s, now, { ok: ok ? 1 : 0, bad: ok ? 0 : 1, xp, ms: Math.min(ms, 120000), apply: mode === "a" && ok ? 1 : 0 }, { combo }),
+    days: bump(s, now, { ok: ok ? 1 : 0, bad: ok ? 0 : 1, xp, ms: Math.min(ms, 120000), apply: mode === "a" && ok ? 1 : 0, night: new Date(now).getHours() < 4 ? 1 : 0 }, { combo }),
     xp: s.xp + xp,
     stats: { ...s.stats, terms: s.stats.terms + (term && ok ? 1 : 0), trapsCaught: s.stats.trapsCaught + (trap ? 1 : 0) },
   };
@@ -229,13 +247,17 @@ export function addXp(s, now, xp, dust = 0, counters = {}) {
   return { ...s, xp: s.xp + xp, dust: s.dust + dust, days: bump(s, now, { xp, ...counters }) };
 }
 /** FSRS: günde kart başına ilk cevap zamanlar */
+/** FSRS: günde kart başına ilk cevap zamanlar. Bugün zaten zamanlanmış bir kart yalnızca
+    bugün yeniden vadesi geldiyse (ör. "Tekrar" denmişse) yeniden zamanlanır.
+    "Yeni" yalnızca hiç tekrar edilmemiş kart için geçerlidir (ders tekrar oynanınca şişme olmaz). */
 export function gradeCard(s, now, cid, grade, { isNew = false, known = false } = {}) {
   const p = s.cards[cid];
-  if (p && p.reps && p.last && dayStart(p.last) === dayStart(now) && !isNew) return s;
-  const np = schedule(p && p.reps ? p : null, grade, now, s.settings.retention);
+  const fresh = !(p && p.reps);
+  if (!fresh && p.last && dayStart(p.last) === dayStart(now) && p.due >= nextDayStart(now)) return s;
+  const np = schedule(fresh ? null : p, grade, now, s.settings.retention);
   const merged = { ...(p || {}), ...np, h: (p && p.h) || [] };
-  if (known) merged.k = 1;
-  return { ...s, cards: { ...s.cards, [cid]: merged }, days: bump(s, now, isNew ? { n: known ? 0 : 1 } : { r: 1 }) };
+  if (known && fresh) merged.k = 1;
+  return { ...s, cards: { ...s.cards, [cid]: merged }, days: bump(s, now, fresh ? { n: known ? 0 : 1 } : { r: 1 }) };
 }
 export function finishLesson(s, now, node, { ok, bad }) {
   const acc = ok + bad ? ok / (ok + bad) : 1;
@@ -262,10 +284,14 @@ export function finishTest(s, now, unitId, { ok, bad }, jump = false) {
     n = { ...n, lessons, open: { ...n.open, [unitId]: true } };
     for (const id of sec.cards) if (!(n.cards[id] && n.cards[id].reps)) n = gradeCard(n, now, id, 3, { isNew: true, known: true });
   }
-  n = { ...n, units: { ...n.units, [unitId]: { ...(n.units[unitId] || {}), crown: n.units[unitId]?.crown || (jump ? 0 : now) } } };
-  const dust = jump ? 15 : 40;
-  n = addXp(n, now, jump ? 15 : 30, dust, {});
-  return { s: n, pass, acc, dust };
+  const prevU = n.units[unitId] || {};
+  const firstCrown = !jump && !prevU.crown;
+  const firstJump = jump && !prevU.jumped;
+  n = { ...n, units: { ...n.units, [unitId]: { ...prevU, crown: prevU.crown || (jump ? 0 : now), jumped: prevU.jumped || (jump ? now : 0) } } };
+  // tam ödül yalnızca ilk taçta / ilk atlamada; tekrarlar küçük ödül
+  const dust = firstCrown ? 40 : firstJump ? 15 : 5;
+  n = addXp(n, now, firstCrown ? 30 : firstJump ? 15 : 8, dust, {});
+  return { s: n, pass, acc, dust, first: firstCrown || firstJump };
 }
 
 /* ---------------- Seri ---------------- */
@@ -323,7 +349,7 @@ export function achCtx(s, now) {
     crowns: Object.values(s.units).filter((u) => u.crown).length,
     foundDone: PATH.filter((p) => p.track.id === "temel").every((p) => p.lessons.every((l) => s.lessons[l.id] && s.lessons[l.id].done)),
     bookletDone: booklet.length > 0 && booklet.every((c) => s.cards[c.id] && s.cards[c.id].reps),
-    hour: new Date(now).getHours(), studiedNow: !!((t.ok || 0) + (t.bad || 0)),
+    hour: new Date(now).getHours(), night: !!t.night,
   };
 }
 

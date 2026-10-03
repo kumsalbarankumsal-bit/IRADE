@@ -30,8 +30,13 @@ function useKeys(handler) {
   ref.current = handler;
   useEffect(() => {
     const k = (e) => {
-      if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+      const t = e.target;
+      if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      // açık bir sayfa (laboratuvar vb.) varken ders kısayolları çalışmaz
+      if (document.querySelector(".scrim")) return;
+      // odaktaki düğmeyi Enter/Boşluk tarayıcı kendisi çalıştırır
+      if ((e.key === "Enter" || e.key === " ") && t && t.closest && t.closest("button:not([disabled]),a,[role=button]")) return;
       if (e.key === " ") e.preventDefault();
       ref.current(e.key, e);
     };
@@ -79,7 +84,7 @@ export function Facts({ c, full = true }) {
 }
 
 /* ---------- i: tanıtım ---------- */
-function MeetStep({ c, onDone, onKnow, openLab, onTouch }) {
+function MeetStep({ c, onDone, onKnow, openLab, onTouch, noKnow }) {
   useKeys((k) => { if (k === "Enter") onDone({ ok: true }); });
   return (
     <>
@@ -100,7 +105,7 @@ function MeetStep({ c, onDone, onKnow, openLab, onTouch }) {
       </div>
       <div className="spacer" />
       <div className="row">
-        <button className="btn soft grow" onClick={onKnow}><Target size={17} /> Zaten biliyorum</button>
+        {!noKnow && <button className="btn soft grow" onClick={onKnow}><Target size={17} /> Zaten biliyorum</button>}
         <button className="btn gold grow" onClick={() => onDone({ ok: true })}>Anladım <ArrowRight size={18} /></button>
       </div>
     </>
@@ -310,15 +315,19 @@ export function Keypad({ value, onChange, onSubmit, disabled }) {
     if (k === "⌫") onChange(value.slice(0, -1));
     else if (k === "−") onChange(value.startsWith("-") ? value.slice(1) : "-" + value);
     else if (k === "go") onSubmit();
+    else if ((k === "," || k === "/") && value.includes(k)) return;
     else if (value.length < 12) onChange(value + k);
   };
-  useKeys((k) => {
+  useKeys((k, e) => {
+    let hit = true;
     if (/^[0-9]$/.test(k)) press(k);
     else if (k === "Backspace") press("⌫");
     else if (k === "-") press("−");
     else if (k === "/") press("/");
     else if (k === "," || k === ".") press(",");
     else if (k === "Enter") press("go");
+    else hit = false;
+    if (hit && e) e.preventDefault();
   });
   const keys = ["7", "8", "9", "⌫", "4", "5", "6", "/", "1", "2", "3", "go", "−", "0", ","];
   return (
@@ -337,8 +346,10 @@ function ApplyStep({ c, onDone, seed }) {
   const [hint, setHint] = useState(false);
   const [done, setDone] = useState(false);
   const t0 = useRef(performance.now());
+  const [shake, setShake] = useState(0);
   const submit = () => {
-    if (done || !val.trim()) return;
+    if (done) return;
+    if (!Number.isFinite(parseAnswer(val))) { setShake((x) => x + 1); vibrate([20, 30, 20], true); return; }
     setDone(true);
     onDone({ ok: isCorrect(val, gen), ms: performance.now() - t0.current, hinted: hint, gen, given: val });
   };
@@ -352,7 +363,7 @@ function ApplyStep({ c, onDone, seed }) {
           : <button className="btn ghost sm" style={{ alignSelf: "center" }} onClick={() => setHint(true)}><Lightbulb size={16} /> Formülü göster (ipucu)</button>}
       </div>
       <div className="spacer" />
-      <div className="answer-box" aria-live="polite">
+      <div className={"answer-box" + (shake ? " shake" : "")} key={shake} aria-live="polite">
         {val ? <span>{val}</span> : <span className="ph">Cevap · Answer (12, 3/4, 0,5)</span>}
         {!done && <span className="caret" />}
         {gen.unit && val && <span className="faint" style={{ fontSize: 16 }}>{gen.unit}</span>}
@@ -397,6 +408,13 @@ function TermStep({ c, onDone, seed, locked }) {
 /* ---------- geri bildirim ---------- */
 function Feedback({ c, res, step, onNext, xp }) {
   const ok = res.ok;
+  const box = useRef(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !el.scrollIntoView) return;
+    const r = el.getBoundingClientRect();
+    if (r.bottom > window.innerHeight) el.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, []);
   const [tr, en] = useMemo(() => (ok ? pick(PRAISE) : pick(OOPS)), [ok]);
   useEnter(onNext);
   useEffect(() => {
@@ -405,7 +423,7 @@ function Feedback({ c, res, step, onNext, xp }) {
     return () => clearTimeout(t);
   }, [ok, step.mode, onNext]);
   return (
-    <div className={"feedback " + (ok ? "ok" : "no")} role="status">
+    <div ref={box} className={"feedback " + (ok ? "ok" : "no")} role="status">
       <div className="row between">
         <span className="verdict">{tr} <span lang="en" className="en small" style={{ fontWeight: 500 }}>{en}</span></span>
         {xp > 0 && <span className="tag gold">+{xp} XP</span>}
@@ -475,17 +493,20 @@ export default function Lesson({ state, plan, now, onAnswer, onGrade, onKnown, o
       setMood(ok ? "happy" : "sad");
     }
     const cid = step.cid;
+    // daha önce öğrenilmiş kart (ders tekrar oynanıyor / kitapçıktan çalışıldı): yeni sayılmaz
+    const had = !!(state.cards[cid] && state.cards[cid].reps);
     let learnedN = 0, reviewedN = 0;
     if (mode === "k") {
       if (ok) {
-        onKnown(cid);
+        if (had) onGrade(cid, 3, {}); else onKnown(cid);
         learnRef.current[cid] = { wrong: false, graded: true, known: true };
         // bu kartın kalan ders adımlarını kaldır
         setQueue((q) => q.filter((x, i) => i <= idx || x.cid !== cid || x.kind !== "learn"));
         xp += 6;
       } else {
-        // bilmiyormuş: tanıtımı yeniden göster, normal akış devam
-        insertLater([{ ...step, mode: "i", uid: step.uid + 0.25 }], 0);
+        // bilmiyormuş: tanıtımı yeniden göster (bu sefer "Zaten biliyorum" yok), normal akış devam
+        learnRef.current[cid] = { ...(learnRef.current[cid] || {}), wrong: true };
+        insertLater([{ ...step, mode: "i", uid: step.uid + 0.25, noKnow: true }], 0);
       }
     } else if (step.kind === "learn") {
       const L = (learnRef.current[cid] = learnRef.current[cid] || { wrong: false, graded: false });
@@ -494,9 +515,8 @@ export default function Lesson({ state, plan, now, onAnswer, onGrade, onKnown, o
         L.graded = true;
         let g = grade;
         if (L.wrong && g > 2) g = 2;
-        onGrade(cid, g, { isNew: true });
-        learnedN = 1;
-        xp += 15;
+        if (had) { onGrade(cid, g, {}); reviewedN = 1; }
+        else { onGrade(cid, g, { isNew: true }); learnedN = 1; xp += 15; }
         if (g === 1) insertLater(relearn(cid), 3);
       }
     } else if (step.kind === "review") {
@@ -509,16 +529,19 @@ export default function Lesson({ state, plan, now, onAnswer, onGrade, onKnown, o
     setLastXp(xp);
     setStats((st) => ({
       ok: st.ok + (!passive && ok ? 1 : 0), bad: st.bad + (!passive && !ok ? 1 : 0), xp: st.xp + xp,
-      learned: st.learned + learnedN + (mode === "k" && ok ? 1 : 0), reviewed: st.reviewed + reviewedN, maxCombo: Math.max(st.maxCombo, nc),
+      learned: st.learned + learnedN + (mode === "k" && ok && !had ? 1 : 0), reviewed: st.reviewed + reviewedN, maxCombo: Math.max(st.maxCombo, nc),
     }));
     if (passive || mode === "f") { next(); return; }
     setRes({ ...r, ok });
     setPhase("feedback");
-  }, [step, combo, s, insertLater, onGrade, onAnswer, onKnown, idx, c, next]);
+  }, [step, combo, s, insertLater, onGrade, onAnswer, onKnown, idx, c, next, state.cards]);
 
   useEffect(() => { if (idx >= queue.length && phase !== "done") setPhase("done"); }, [idx, queue.length, phase]);
   const summary = { ...stats, ms: Date.now() - t0.current };
-  const close = () => { if (stats.ok + stats.bad > 0) onFinish({ ...summary, partial: true }); else onClose(); };
+  const close = () => {
+    if (phase === "done") { onFinish(summary); return; }
+    if (stats.ok + stats.bad > 0) onFinish({ ...summary, partial: true }); else onClose();
+  };
   useEffect(() => {
     const k = (e) => { if (e.key === "Escape" && !lab) close(); };
     window.addEventListener("keydown", k);
@@ -576,7 +599,7 @@ function StepView({ step, c, state, now, onDone, locked, seed, gradable, onKnow,
   if (mode === "e" && !(c.t && c.t.length)) mode = "m";
   if ((mode === "m" || mode === "t" || mode === "k") && !(c.x && c.x.length)) mode = mode === "t" ? "f" : "r";
   switch (mode) {
-    case "i": return <MeetStep c={c} onDone={onDone} onKnow={onKnow} openLab={openLab} />;
+    case "i": return <MeetStep c={c} onDone={onDone} onKnow={onKnow} openLab={openLab} noKnow={!!step.noKnow || step.kind !== "learn"} />;
     case "s": return <ShowStep c={c} onDone={onDone} />;
     case "m": case "r": case "w": case "k": return <ChoiceStep c={c} mode={mode} onDone={onDone} locked={locked} seed={seed} />;
     case "t": return <TFStep c={c} onDone={onDone} seed={seed} />;
@@ -596,7 +619,7 @@ function Summary({ stats, plan, state, onFinish }) {
   useEnter(onFinish);
   useEffect(() => { play(isTest && !pass ? "wrong" : "level", state.settings.sound); }, []); // eslint-disable-line
   const head = isTest
-    ? (pass ? ["Geçtin! Taç senin.", "You passed! The crown is yours."] : ["Bu sefer olmadı, ama çok yaklaştın.", "Not this time, but you were close."])
+    ? (pass ? (plan.kind === "jump" ? ["Geçtin! Üniteyi atladın.", "You passed! You tested out of the unit."] : ["Geçtin! Taç senin.", "You passed! The crown is yours."]) : ["Bu sefer olmadı, ama çok yaklaştın.", "Not this time, but you were close."])
     : acc >= 0.9 ? ["Muhteşem bir ders!", "An amazing lesson!"] : acc >= 0.7 ? ["Çok iyi gidiyorsun!", "You're doing great!"] : ["Tekrar, ustalığın anasıdır.", "Practice makes perfect."];
   return (
     <div className="stack fade-in" style={{ paddingTop: 10, alignItems: "stretch" }}>
@@ -606,7 +629,7 @@ function Summary({ stats, plan, state, onFinish }) {
         <div lang="en" className="en">{head[1]}</div>
       </div>
       <div className="row" style={{ justifyContent: "center" }}>
-        {isTest ? (pass ? <Crown size={44} style={{ color: "var(--gold)" }} /> : null) : plan.kind === "lesson" ? <Stars3 n={stars} size={36} /> : null}
+        {isTest ? (pass && plan.kind === "boss" ? <Crown size={44} style={{ color: "var(--gold-text)" }} /> : null) : plan.kind === "lesson" ? <Stars3 n={stars} size={36} /> : null}
       </div>
       <div className="stat-grid">
         <div className="stat"><b>%{Math.round(acc * 100)}</b><span>Doğruluk</span></div>

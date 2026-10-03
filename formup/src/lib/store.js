@@ -53,10 +53,14 @@ export async function connectRemote() {
       return {
         kind: "storage",
         async load() {
-          try {
-            const r = await window.storage.get(KEY);
-            return r && r.value ? JSON.parse(r.value) : null;
-          } catch (e) { return null; }
+          let r;
+          try { r = await window.storage.get(KEY); }
+          catch (e) {
+            // anahtar hiç yoksa bazı ortamlar hata fırlatır; gerçek hatalarda kaydı açmayız
+            if (/not.?found|no such|missing|does not exist/i.test(String((e && e.message) || e))) return null;
+            throw e;
+          }
+          return r && r.value ? JSON.parse(r.value) : null;
         },
         async save(state) { await window.storage.set(KEY, JSON.stringify(state)); },
       };
@@ -65,7 +69,7 @@ export async function connectRemote() {
   return null;
 }
 
-/** Aynı anda tek yazım; arka arkaya gelenler son hâle birleşir. */
+/** Aynı anda tek yazım; arka arkaya gelenler son hâle birleşir. save.flush() bekleyeni hemen yazar. */
 export function makeSaver(remote, onStatus) {
   let pending = null, busy = false, timer = null;
   async function flush() {
@@ -77,9 +81,11 @@ export function makeSaver(remote, onStatus) {
     busy = false;
     if (pending) flush();
   }
-  return (state) => {
+  const save = (state) => {
     pending = state;
     clearTimeout(timer);
     timer = setTimeout(flush, 1500);
   };
+  save.flush = () => { clearTimeout(timer); flush(); };
+  return save;
 }

@@ -14,7 +14,7 @@
   --violet: #6B4FE0; --violet-soft: rgba(107, 79, 224, 0.11);
   --en: #2D63C9;
   --plot-bg: #F7F9FF; --plot-grid: rgba(18, 23, 58, 0.07);
-  --star-dim: #B9C1DC; --star-off: #D9DEEE;
+  --star-dim: #A9B2D2; --star-off: #8E98BC; --gold-text: #8A5E00;
   --shadow: 0 1px 0 rgba(18, 23, 58, 0.04), 0 12px 32px rgba(30, 40, 90, 0.10);
   --shadow-sm: 0 1px 0 rgba(18, 23, 58, 0.05), 0 4px 14px rgba(30, 40, 90, 0.07);
   --glow: 0 0 0 0 transparent;
@@ -39,7 +39,7 @@
     --violet: #A98DFF; --violet-soft: rgba(169, 141, 255, 0.15);
     --en: #8EC8FF;
     --plot-bg: #0F1735; --plot-grid: rgba(185, 192, 230, 0.08);
-    --star-dim: #59648F; --star-off: #2E3967;
+    --star-dim: #59648F; --star-off: #2E3967; --gold-text: var(--gold);
     --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
     --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
     --glow: 0 0 28px rgba(255, 201, 77, 0.35);
@@ -60,7 +60,7 @@
   --violet: #A98DFF; --violet-soft: rgba(169, 141, 255, 0.15);
   --en: #8EC8FF;
   --plot-bg: #0F1735; --plot-grid: rgba(185, 192, 230, 0.08);
-  --star-dim: #59648F; --star-off: #2E3967;
+  --star-dim: #59648F; --star-off: #2E3967; --gold-text: var(--gold);
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
   --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
   --glow: 0 0 28px rgba(255, 201, 77, 0.35);
@@ -81,7 +81,7 @@
   --violet: #A98DFF; --violet-soft: rgba(169, 141, 255, 0.15);
   --en: #8EC8FF;
   --plot-bg: #0F1735; --plot-grid: rgba(185, 192, 230, 0.08);
-  --star-dim: #59648F; --star-off: #2E3967;
+  --star-dim: #59648F; --star-off: #2E3967; --gold-text: var(--gold);
   --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.45);
   --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.3), 0 6px 18px rgba(0, 0, 0, 0.35);
   --glow: 0 0 28px rgba(255, 201, 77, 0.35);
@@ -101,7 +101,7 @@
   --violet: #6B4FE0; --violet-soft: rgba(107, 79, 224, 0.11);
   --en: #2D63C9;
   --plot-bg: #F7F9FF; --plot-grid: rgba(18, 23, 58, 0.07);
-  --star-dim: #B9C1DC; --star-off: #D9DEEE;
+  --star-dim: #A9B2D2; --star-off: #8E98BC; --gold-text: #8A5E00;
   --shadow: 0 1px 0 rgba(18, 23, 58, 0.04), 0 12px 32px rgba(30, 40, 90, 0.10);
   --shadow-sm: 0 1px 0 rgba(18, 23, 58, 0.05), 0 4px 14px rgba(30, 40, 90, 0.07);
   --glow: 0 0 0 0 transparent;
@@ -144,7 +144,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .bi > .en { font-size: 0.86em; line-height: 1.35; }
 .tag-en { display: inline-block; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--en); border: 1px solid currentColor; border-radius: 4px; padding: 0 3px; margin-right: 5px; vertical-align: 1px; opacity: .85; }
 .hand { font-family: var(--f-hand); font-size: 23px; line-height: 1.1; font-weight: 700; }
-.note { font-family: var(--f-hand); font-size: 22px; line-height: 1.2; color: var(--gold); font-weight: 700; }
+.note { font-family: var(--f-hand); font-size: 22px; line-height: 1.2; color: var(--gold-text); font-weight: 700; }
 .note .tex { font-size: 0.78em; }
 .katex { text-transform: none; letter-spacing: 0; }
 
@@ -154,9 +154,9 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .pill { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; white-space: nowrap; box-shadow: var(--shadow-sm); }
 .pill.flame { color: var(--coral); }
 .pill.flame.cold { color: var(--ink-3); }
-.pill.dust { color: var(--gold); }
+.pill.dust { color: var(--gold-text); }
 .wordmark { font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: -0.03em; display: inline-flex; align-items: flex-start; }
-.wordmark sup { font-size: 11px; font-weight: 800; color: var(--gold); margin-left: 1px; }
+.wordmark sup { font-size: 11px; font-weight: 800; color: var(--gold-text); margin-left: 1px; }
 
 /* ---------- Yüzeyler ---------- */
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 18px; box-shadow: var(--shadow-sm); position: relative; }
@@ -222,7 +222,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .formula-sm { font-size: 15px; } .formula-md { font-size: 19px; } .formula-lg { font-size: 23px; } .formula-xl { font-size: 28px; }
 .qmark { display: inline-grid; place-items: center; min-width: 1.7em; height: 1.4em; border-radius: 9px; border: 2px dashed var(--gold); color: var(--gold); font-weight: 700; padding: 0 .3em; }
 .formula-box { overflow-x: auto; overflow-y: hidden; text-align: center; padding: 8px 2px; scrollbar-width: thin; }
-.tex .blank-on { color: var(--gold); }
+.tex .blank-on { color: var(--gold-text); }
 .tex .blank-ok { color: var(--mint); }
 .tex .blank-bad { color: var(--coral); }
 
@@ -462,6 +462,7 @@ label.lbl { font-size: 12.5px; font-weight: 600; color: var(--ink-2); display: b
 .empty { text-align: center; padding: 30px 18px; display: flex; flex-direction: column; gap: 10px; align-items: center; }
 .fade-in { animation: rise .3s ease both; }
 .nobr { white-space: nowrap; }
+.facts .tag { white-space: normal; flex-wrap: wrap; max-width: 100%; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---------- Karşılama v2 ---------- */

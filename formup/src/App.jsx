@@ -19,6 +19,7 @@ import { readLocal, writeLocal, clearLocal, connectRemote, makeSaver } from "./l
 import { rankOf, ACHIEVEMENTS } from "./data/v2/meta.js";
 import { OUTFITS } from "./ui/Pi.jsx";
 import { play } from "./lib/sound.js";
+import { dayKey } from "./lib/util.js";
 
 const TABS = [
   { id: "path", hash: "yol", tr: "Yol", en: "Path", icon: Rocket },
@@ -44,7 +45,8 @@ export default function App() {
   const [nodeTarget, setNodeTarget] = useState(null);
   const [toast, setToast] = useState(null);
   const [burst, setBurst] = useState(0);
-  const [celebrate, setCelebrate] = useState(null);
+  const [celebrate, setCelebrateQ] = useState([]);
+  const setCelebrate = useCallback((item) => setCelebrateQ((q) => [...q, { ...item, id: Date.now() + Math.random() }]), []);
   const [storage, setStorage] = useState("local");
   const saverRef = useRef(null);
   const loadedRef = useRef(false);
@@ -55,35 +57,54 @@ export default function App() {
   const say = useCallback((msg, party = false) => { setToast({ msg, id: Date.now() }); if (party) setBurst(Date.now()); }, []);
   const S = state.settings;
 
-  /* ---- kalıcılık: yerel kopya hemen, bulut gelince daha yeni olan kazanır ---- */
+  /* ---- kalıcılık: yerel kopya hemen; bulut ancak başarıyla okunduktan sonra yazılır,
+         ikisinden daha yeni olan kazanır ---- */
+  const stateRef = useRef(state);
+  stateRef.current = state;
   useEffect(() => {
-    let alive = true;
+    let alive = true, timer = null;
     (async () => {
       const remote = await connectRemote();
-      if (!alive) return;
-      if (remote) {
-        setStorage(remote.kind);
-        saverRef.current = makeSaver(remote, () => {});
+      if (!alive || !remote) return;
+      setStorage(remote.kind);
+      const tryLoad = async (attempt) => {
         try {
           const r = await remote.load();
-          const local = bootLocal.current;
-          const localReal = local && local.v === 2 && local.settings && local.settings.onboarded;
-          if (alive && r && r.v === 2 && (!localReal || (r.updatedAt || 0) > (local.updatedAt || 0))) {
+          if (!alive) return;
+          const cur = stateRef.current;
+          const curReal = cur.settings && cur.settings.onboarded;
+          const useRemote = r && r.v === 2 && (!curReal || (r.updatedAt || 0) > (cur.updatedAt || 0));
+          if (useRemote) {
             const m = migrate(r);
             rankRef.current = rankOf(m.xp).i;
-            setState(m);
-          } else if (localReal) saverRef.current(migrate(local));
-        } catch (e) { /* yerel kopyayla devam */ }
-      }
-      loadedRef.current = true;
+            setState((c) => ((c.settings.onboarded && (c.updatedAt || 0) >= (r.updatedAt || 0)) ? c : m));
+          }
+          saverRef.current = makeSaver(remote, (st) => setStorage(st === "ok" ? remote.kind : "error"));
+          loadedRef.current = true;
+          if (!useRemote && curReal) saverRef.current(stateRef.current);
+        } catch (e) {
+          // okuma başarısız: bulutun üzerine yazma; bekleyip yeniden dene
+          if (!alive) return;
+          setStorage("error");
+          if (attempt < 6) timer = setTimeout(() => tryLoad(attempt + 1), Math.min(60000, 3000 * 2 ** attempt));
+        }
+      };
+      tryLoad(0);
     })();
-    return () => { alive = false; };
+    return () => { alive = false; clearTimeout(timer); };
   }, []); // eslint-disable-line
   useEffect(() => {
     const t = setTimeout(() => writeLocal(state), 250);
     if (loadedRef.current && saverRef.current) saverRef.current(state);
     return () => clearTimeout(t);
   }, [state]);
+  useEffect(() => {
+    const flush = () => { writeLocal(stateRef.current); if (saverRef.current && saverRef.current.flush) saverRef.current.flush(); };
+    const vis = () => { if (document.hidden) flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", vis);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", vis); };
+  }, []);
 
   /* ---- saat ---- */
   useEffect(() => {
@@ -103,8 +124,7 @@ export default function App() {
     const fresh = ACHIEVEMENTS.filter((a) => !state.ach[a.id] && a.check(state, ctx));
     if (fresh.length) {
       update((s) => ({ ...s, ach: { ...s.ach, ...Object.fromEntries(fresh.map((a) => [a.id, t])) }, dust: s.dust + 20 * fresh.length }));
-      if (!session && !game) setCelebrate({ kind: "ach", list: fresh });
-      else say(`Yeni rozet: ${fresh.map((a) => a.tr).join(", ")} (+${20 * fresh.length} ✦)`, true);
+      setCelebrate({ kind: "ach", list: fresh });
       play("level", S.sound);
     }
     const ri = rankOf(state.xp);
@@ -162,8 +182,12 @@ export default function App() {
   const onKnown = useCallback((cid) => update((s) => gradeCard(s, Date.now(), cid, 3, { isNew: true, known: true })), [update]);
   const onLab = useCallback((id) => update((s) => {
     const t = Date.now();
+    const k = dayKey(t);
+    const seen = { ...s.labsSeen, [id]: s.labsSeen[id] || t };
+    if ((s.labsDay || {})[id] === k) return { ...s, labsSeen: seen };
+    // her laboratuvar günde bir kez ödül verir
     const n = addXp(s, t, 2, 0, { labs: 1 });
-    return { ...n, labsSeen: { ...n.labsSeen, [id]: n.labsSeen[id] || t } };
+    return { ...n, labsSeen: seen, labsDay: { ...(n.labsDay || {}), [id]: k } };
   }), [update]);
 
   const onFinish = (sum) => {
@@ -188,9 +212,12 @@ export default function App() {
         const r = finishTest(s, t, plan.unit, res, jump);
         return { ...r.s, stats: { ...r.s.stats, sessions: r.s.stats.sessions + 1 } };
       });
-      if (out.pass) {
+      if (out.pass && out.first) {
         setCelebrate({ kind: jump ? "jump" : "crown", unit: UNIT[plan.unit], dust: out.dust });
         play("level", S.sound);
+      } else if (out.pass) {
+        play("coin", S.sound);
+        say(`Yine geçtin! +${out.dust} ✦`);
       }
     } else {
       update((s) => ({ ...s, stats: { ...s.stats, sessions: s.stats.sessions + 1 } }));
@@ -321,8 +348,8 @@ export default function App() {
             onAnswer={onAnswer} onGrade={onGrade} onKnown={onKnown} onFinish={onFinish} onClose={() => setSession(null)} onLab={onLab} />
         )}
         {game && <GameShell state={state} game={game} onExit={() => setGame(null)} onResult={onGameResult} />}
-        {celebrate && !session && !game && <Celebrate c={celebrate} state={state} onClose={() => setCelebrate(null)} />}
-        {toast && <div className="toast" role="status" key={"toast-" + toast.id}><Sparkles size={18} style={{ flex: "none", color: "var(--gold)" }} /> {toast.msg}</div>}
+        {celebrate.length > 0 && !session && !game && <Celebrate key={celebrate[0].id} c={celebrate[0]} state={state} onClose={() => setCelebrateQ((q) => q.slice(1))} />}
+        {toast && <div className="toast" role="status" key={"toast-" + toast.id}><Sparkles size={18} style={{ flex: "none", color: "var(--gold-text)" }} /> {toast.msg}</div>}
         {burst ? <Burst key={"burst-" + burst} /> : null}
       </div>
     </EnCtx.Provider>
@@ -349,7 +376,7 @@ function Celebrate({ c, state, onClose }) {
         <span className="eyebrow">Yeni rozet · New badge</span>
         {c.list.map((a) => (
           <div key={a.id} className="stack-sm" style={{ gap: 2 }}>
-            <div className="display" style={{ fontSize: 28 }}><Award size={26} style={{ color: "var(--gold)", verticalAlign: -3 }} /> {a.tr}</div>
+            <div className="display" style={{ fontSize: 28 }}><Award size={26} style={{ color: "var(--gold-text)", verticalAlign: -3 }} /> {a.tr}</div>
             <div lang="en" className="en">{a.en}</div>
             <div className="small muted">{a.dtr}</div>
           </div>

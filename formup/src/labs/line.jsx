@@ -11,6 +11,7 @@ const MINUS = "−";
 
 /* ---------- sayı yardımcıları ---------- */
 const sn = (v, d = 2) => nf(v, d).replace("-", MINUS);              // ekranda gerçek eksi işareti
+const U = (s) => s.toLocaleUpperCase("tr");                           // çip etiketleri: doğru Türkçe büyük harf (İ)
 const ne = (v, d = 2) => sn(v, d).replace(",", ".");                  // İngilizce metin: ondalık nokta
 const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
 function frac(n, d) { if (d < 0) { n = -n; d = -d; } const g = gcd(n, d); return [n / g, d / g]; }
@@ -247,19 +248,19 @@ export default function LineLab() {
   const [n1, d1] = vertical ? [0, 1] : frac(rise, run);
   const items = [
     vertical
-      ? { label: "Eğim · ↕ dikey", labelEn: "gradient, vertical", value: <>tanımsız <span className="en">· undefined</span></>, color: "var(--coral)" }
-      : { label: `Eğim · ${dir.tr}`, labelEn: `gradient, ${dir.en}`, tex: `m = ${fracChain(rise, run, false)}`, color: dir.color },
+      ? { label: U("Eğim · ↕ dikey"), labelEn: "gradient, vertical", value: <>tanımsız <span className="en">· undefined</span></>, color: "var(--coral)" }
+      : { label: U(`Eğim · ${dir.tr}`), labelEn: `gradient, ${dir.en}`, tex: `m = ${fracChain(rise, run, false)}`, color: dir.color },
     vertical
-      ? { label: "y-kesişimi", labelEn: "y-intercept", value: A[0] === 0 ? <>y ekseninin kendisi <span className="en">· the y-axis itself</span></> : <>yok <span className="en">· none</span></>, color: "var(--violet)" }
-      : { label: "y-kesişimi", labelEn: "y-intercept", tex: `c = ${qTex(cn, cd)}`, color: "var(--violet)" },
+      ? { label: U("y-kesişimi"), labelEn: "y-intercept", value: A[0] === 0 ? <>y ekseninin kendisi <span className="en">· the y-axis itself</span></> : <>yok <span className="en">· none</span></>, color: "var(--violet)" }
+      : { label: U("y-kesişimi"), labelEn: "y-intercept", tex: `c = ${qTex(cn, cd)}`, color: "var(--violet)" },
   ];
   if (vertical) {
-    items.push({ label: "Denklem", labelEn: "Equation", tex: `x = ${A[0]}`, color: "var(--sky)" });
+    items.push({ label: U("Denklem"), labelEn: "Equation", tex: `x = ${A[0]}`, color: "var(--sky)" });
   } else if (rise === 0) {
-    items.push({ label: "Denklem", labelEn: "Equation", tex: `y = ${qTex(cn, cd)}`, color: "var(--sky)" });
+    items.push({ label: U("Denklem"), labelEn: "Equation", tex: `y = ${qTex(cn, cd)}`, color: "var(--sky)" });
   } else {
     const coef = d1 === 1 && Math.abs(n1) === 1 ? (n1 < 0 ? "-" : "") : qTex(n1, d1);
-    items.push({ label: "Nokta-eğim biçimi", labelEn: "Point-gradient form", tex: `{y - y_1 = m(x - x_1)} \\;\\Rightarrow\\; {${shiftTex("y", A[1])} = ${coef}${A[0] === 0 ? "x" : `(${shiftTex("x", A[0])})`}}`, color: "var(--sky)" });
+    items.push({ label: U("Nokta-eğim biçimi"), labelEn: "Point-gradient form", tex: `{y - y_1 = m(x - x_1)} \\;\\Rightarrow\\; {${shiftTex("y", A[1])} = ${coef}${A[0] === 0 ? "x" : `(${shiftTex("x", A[0])})`}}`, color: "var(--sky)" });
   }
 
   // İpucu (duruma göre) — eğim metni: 1,5 · 1/7 ≈ 0,14

@@ -1,22 +1,22 @@
 /* Oyun salonu: hızlı, kısa, ödüllü oyunlar */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Zap, Puzzle, ShieldAlert, Calculator, Search, Languages, X, Check, Trophy, RotateCcw, Timer, ArrowRight } from "lucide-react";
-import { Formula, Field, Tex, Rich } from "../lib/tex.jsx";
+import { Formula, Field, Tex, Rich, visualLen } from "../lib/tex.jsx";
 import { Bi } from "./common.jsx";
 import Pi from "./Pi.jsx";
-import { CARDS, BY_ID, GEN, GLOSSARY, NODES, learned, currentNode, tfCandidate, whichOptions } from "../lib/learn.js";
+import { CARDS, BY_ID, GEN, GLOSSARY, NODES, learned, currentNode, tfCandidate, whichOptions, distinctTerms } from "../lib/learn.js";
 import { Keypad, isCorrect } from "./Lesson.jsx";
 import { shuffle, pick, rng, vibrate } from "../lib/util.js";
 import { play } from "../lib/sound.js";
 import { sparkleAt } from "./common.jsx";
 
 export const GAMES = [
-  { id: "speed", tr: "Hız Turu", en: "Speed Round", icon: Zap, color: "var(--gold)", soft: "var(--gold-soft)", dtr: "60 saniye: formül doğru mu?", den: "60 seconds: true or false?", best: (b) => b.speed ? `${b.speed} puan` : null },
-  { id: "which", tr: "Hangi Formül?", en: "Which Formula?", icon: Search, color: "var(--sky)", soft: "var(--sky-soft)", dtr: "Durumu oku, doğru formülü seç.", den: "Read the situation, pick the formula.", best: (b) => b.which ? `${b.which}/10` : null },
-  { id: "terms", tr: "Terim Avı", en: "Term Hunt", icon: Languages, color: "var(--violet)", soft: "var(--violet-soft)", dtr: "İngilizce terimleri eşle.", den: "Match the English terms.", best: (b) => b.terms ? `${b.terms}/12` : null },
+  { id: "speed", tr: "Hız Turu", en: "Speed Round", icon: Zap, color: "var(--gold-text)", soft: "var(--gold-soft)", dtr: "60 saniye: formül doğru mu?", den: "60 seconds: true or false?", best: (b) => b.speed != null ? `${b.speed} puan` : null },
+  { id: "which", tr: "Hangi Formül?", en: "Which Formula?", icon: Search, color: "var(--sky)", soft: "var(--sky-soft)", dtr: "Durumu oku, doğru formülü seç.", den: "Read the situation, pick the formula.", best: (b) => b.which != null ? `${b.which}/10` : null },
+  { id: "terms", tr: "Terim Avı", en: "Term Hunt", icon: Languages, color: "var(--violet)", soft: "var(--violet-soft)", dtr: "İngilizce terimleri eşle.", den: "Match the English terms.", best: (b) => b.terms != null ? `${b.terms}/12` : null },
   { id: "match", tr: "Eşleştir", en: "Match Up", icon: Puzzle, color: "var(--mint)", soft: "var(--mint-soft)", dtr: "Formülün iki yarısını birleştir.", den: "Join the two halves.", best: (b) => b.match ? `${(b.match / 1000).toFixed(1).replace(".", ",")} sn` : null },
-  { id: "trap", tr: "Tuzak Avı", en: "Trap Hunt", icon: ShieldAlert, color: "var(--coral)", soft: "var(--coral-soft)", dtr: "Dört formülden biri yanlış.", den: "One of four is wrong.", best: (b) => b.trap ? `${b.trap}/10` : null },
-  { id: "lab", tr: "Sayı Atölyesi", en: "Number Lab", icon: Calculator, color: "var(--gold)", soft: "var(--gold-soft)", dtr: "10 gerçek soru çöz.", den: "Solve 10 real problems.", best: (b) => b.lab ? `${b.lab}/10` : null },
+  { id: "trap", tr: "Tuzak Avı", en: "Trap Hunt", icon: ShieldAlert, color: "var(--coral)", soft: "var(--coral-soft)", dtr: "Dört formülden biri yanlış.", den: "One of four is wrong.", best: (b) => b.trap != null ? `${b.trap}/10` : null },
+  { id: "lab", tr: "Sayı Atölyesi", en: "Number Lab", icon: Calculator, color: "var(--gold-text)", soft: "var(--gold-soft)", dtr: "10 gerçek soru çöz.", den: "Solve 10 real problems.", best: (b) => b.lab != null ? `${b.lab}/10` : null },
 ];
 
 /** Oyun havuzu: öğrenilenler; az ise yolda şu ana kadar gelinen ünitelerin kartları */
@@ -92,16 +92,18 @@ export function GameShell({ state, game, onExit, onResult }) {
 }
 
 function Result({ G, result, state, onAgain, onExit }) {
+  // yalnızca gerçekten tekrar listesine alınan (öğrenilmiş) formüller
+  const moved = [...new Set(result.wrongIds || [])].filter((id) => { const p = state.cards[id]; return p && p.reps && !p.sus; });
   useEffect(() => { play(result.record ? "level" : "correct", state.settings.sound); }, []); // eslint-disable-line
   return (
     <div className="stack fade-in" style={{ paddingTop: 10, textAlign: "center", alignItems: "stretch" }}>
       <div className="row" style={{ justifyContent: "center" }}><Pi mood={result.record ? "party" : "happy"} outfit={state.settings.outfit} size={110} /></div>
       <div className="eyebrow">{G.tr} · <span lang="en">{G.en}</span></div>
       <div className="display" style={{ fontSize: 56 }}>{result.display}</div>
-      {result.record && <div className="hand" style={{ color: "var(--gold)", fontSize: 30 }}>Yeni rekor! · New record!</div>}
+      {result.record && <div className="hand" style={{ color: "var(--gold-text)", fontSize: 30 }}>Yeni rekor! · New record!</div>}
       <div className="row" style={{ justifyContent: "center", gap: 8 }}>
         <span className="tag gold">+{result.xp} XP</span><span className="tag gold">+{result.dust} ✦</span>
-        {result.wrongIds && result.wrongIds.length > 0 && <span className="tag coral">{new Set(result.wrongIds).size} formül tekrara</span>}
+        {moved.length > 0 && <span className="tag coral">{moved.length} formül tekrara</span>}
       </div>
       {result.wrongIds && result.wrongIds.length > 0 && (
         <div className="panel" style={{ textAlign: "left" }}>
@@ -121,7 +123,7 @@ function Result({ G, result, state, onAgain, onExit }) {
     </div>
   );
 }
-const finishBase = (score, max, best, key, extra = {}) => ({ record: score > (best || 0), best: { [key]: Math.max(best || 0, score) }, ...extra });
+const finishBase = (score, max, best, key, extra = {}) => ({ record: best == null ? score > 0 : score > best, best: { [key]: Math.max(best ?? 0, score) }, ...extra });
 
 /* ---------------- Hız Turu ---------------- */
 function SpeedGame({ state, onEnd }) {
@@ -132,27 +134,31 @@ function SpeedGame({ state, onEnd }) {
   const [left, setLeft] = useState(60000);
   const [score, setScore] = useState(0);
   const [flash, setFlash] = useState(null);
-  const wrong = useRef([]), traps = useRef(0), penalty = useRef(0);
+  const [miss, setMiss] = useState(0);
+  const wrong = useRef([]), traps = useRef(0), penalty = useRef(0), shownAt = useRef(Date.now());
   useEffect(() => {
     const t0 = Date.now();
     const iv = setInterval(() => { const l = 60000 - (Date.now() - t0) - penalty.current; setLeft(l); if (l <= 0) clearInterval(iv); }, 100);
     return () => clearInterval(iv);
   }, []);
   useEffect(() => {
-    if (left <= 0) onEnd({ display: `${score}`, xp: score * 2, dust: Math.ceil(score / 2), wrongIds: wrong.current, trapsCaught: traps.current, ...finishBase(score, 0, state.best.speed, "speed") });
+    // net puan: her yanlış bir doğruyu götürür (kör dokunma ödül getirmez)
+    const net = Math.max(0, score - miss);
+    if (left <= 0) onEnd({ display: `${net}`, xp: net * 2, dust: Math.ceil(net / 2), wrongIds: wrong.current, trapsCaught: net > 0 ? Math.max(0, traps.current - miss) : 0, ...finishBase(net, 0, state.best.speed, "speed") });
   }, [left <= 0]); // eslint-disable-line
   const answer = (v, e) => {
-    if (left <= 0) return;
+    if (left <= 0 || Date.now() - shownAt.current < 280) return;
+    shownAt.current = Date.now();
     const ok = v === q.cand.ok;
     if (ok) { setScore((s) => s + 1); if (!q.cand.ok) traps.current++; if (e && e.clientX) sparkleAt(e.clientX, e.clientY, 8); }
-    else { wrong.current.push(q.c.id); penalty.current += 3000; }
+    else { wrong.current.push(q.c.id); penalty.current += 3000; setMiss((m) => m + 1); }
     play(ok ? "correct" : "wrong", state.settings.sound);
     vibrate(ok ? 8 : [25, 30, 25], state.settings.haptics);
     setFlash(ok ? "ok" : "no"); setTimeout(() => setFlash(null), 250);
     setQ(mk());
   };
   useEffect(() => {
-    const k = (e) => { if (e.key === "ArrowLeft") answer(false); if (e.key === "ArrowRight") answer(true); };
+    const k = (e) => { if (e.repeat) return; if (e.key === "ArrowLeft") answer(false); if (e.key === "ArrowRight") answer(true); };
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
   });
@@ -160,7 +166,7 @@ function SpeedGame({ state, onEnd }) {
     <>
       <div className="row between">
         <span className="row" style={{ gap: 6, fontWeight: 700 }}><Timer size={18} /> <span className="num">{Math.max(0, Math.ceil(left / 1000))} sn</span></span>
-        <span className="display num" style={{ fontSize: 30 }}>{score}</span>
+        <span className="display num" style={{ fontSize: 30 }}>{Math.max(0, score - miss)}{miss > 0 && <span className="tiny" style={{ color: "var(--coral)", marginLeft: 6 }}>−{miss}</span>}</span>
       </div>
       <div className="bar"><span style={{ width: `${Math.max(0, left / 600)}%`, background: "var(--gold)" }} /></div>
       <div className="qcard" style={{ outline: flash ? `3px solid ${flash === "ok" ? "var(--mint)" : "var(--coral)"}` : "none" }}>
@@ -199,8 +205,10 @@ function TermGame({ state, onEnd }) {
     if (pool.length < 12) pool = GLOSSARY;
     return shuffle(pool, r).slice(0, 12).map((g) => {
       const rev = r() < 0.4;
-      const others = shuffle(GLOSSARY.filter((o) => o !== g && o.tr !== g.tr), r).slice(0, 3);
-      return { g, c: BY_ID[g.cards[0]], rev, opts: shuffle([{ ok: true, v: rev ? g.en : g.tr }, ...others.map((o) => ({ ok: false, v: rev ? o.en : o.tr }))], r) };
+      const right = rev ? g.en : g.tr;
+      const others = distinctTerms(right, (o) => (rev ? o.en : o.tr), (o) => o !== g && o.tr.toLowerCase() !== g.tr.toLowerCase() && o.en.toLowerCase() !== g.en.toLowerCase(), r);
+      const cid = g.cards.find((id) => state.cards[id] && state.cards[id].reps) || g.cards.find((id) => ids.has(id)) || g.cards[0];
+      return { g, c: BY_ID[cid], rev, opts: shuffle([{ ok: true, v: right }, ...others.map((v) => ({ ok: false, v }))], r) };
     });
   }, []); // eslint-disable-line
   return <ChoiceRounds state={state} rounds={rounds} onEnd={onEnd} keyName="terms" term
@@ -272,7 +280,7 @@ const informative = (l) => !l.startsWith("~") && l.replace(/\\[a-zA-Z]+|[{}\s^_]
 function MatchGame({ state, onEnd }) {
   const pairs = useMemo(() => {
     const r = rng(Date.now() % 1e9);
-    const list = gamePool(state, 8, (c) => c.l.length < 46 && c.r.length < 64 && !c.r.startsWith("~"));
+    const list = gamePool(state, 8, (c) => !c.r.startsWith("~") && visualLen(c.r) <= 12 && (visualLen(c.l) <= 12 || !informative(c.l)));
     const sl = new Set(), sr = new Set(), out = [];
     for (const c of shuffle(list, r)) { if (sl.has(c.l) || sr.has(c.r)) continue; sl.add(c.l); sr.add(c.r); out.push(c); if (out.length === 6) break; }
     return { items: out, L: shuffle(out, r), R: shuffle(out, r) };

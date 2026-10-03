@@ -57,14 +57,35 @@ export function Switch({ on, onChange, label }) {
 }
 
 export function Sheet({ onClose, children, label }) {
+  const sheet = React.useRef(null);
+  const closeRef = React.useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    const k = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [onClose]);
+    // odağı sayfaya taşı, Tab’i içeride tut, kapanınca eski yerine döndür; Esc yalnızca en üstteki sayfayı kapatır
+    const prev = document.activeElement;
+    const el = sheet.current;
+    const first = el && el.querySelector("button");
+    if (first) first.focus({ preventScroll: true });
+    const k = (e) => {
+      const all = document.querySelectorAll(".sheet");
+      if (all[all.length - 1] !== el) return;
+      if (e.key === "Escape") { e.stopImmediatePropagation(); closeRef.current(); return; }
+      if (e.key !== "Tab") return;
+      const f = [...el.querySelectorAll('button:not([disabled]),[href],input,textarea,select,[tabindex]:not([tabindex="-1"])')].filter((x) => x.offsetParent !== null);
+      if (!f.length) return;
+      const a = f[0], b = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === a || !el.contains(document.activeElement))) { e.preventDefault(); b.focus(); }
+      else if (!e.shiftKey && (document.activeElement === b || !el.contains(document.activeElement))) { e.preventDefault(); a.focus(); }
+    };
+    window.addEventListener("keydown", k, true);
+    return () => {
+      window.removeEventListener("keydown", k, true);
+      if (prev && prev.focus && document.contains(prev)) prev.focus({ preventScroll: true });
+    };
+  }, []);
   return (
     <div className="scrim" onClick={onClose} role="dialog" aria-modal="true" aria-label={label}>
-      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" ref={sheet} onClick={(e) => e.stopPropagation()}>
         <div className="row between" style={{ marginBottom: 6 }}>
           <div className="grabber" />
           <button className="icon-btn plain" onClick={onClose} aria-label="Kapat"><X size={20} /></button>
@@ -139,10 +160,14 @@ export function Cosmos({ dark }) {
       w = cv.clientWidth; h = cv.clientHeight;
       cv.width = w * dpr; cv.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // canlandırma döngüsü yoksa yeniden boyutlanınca yeniden çiz (yoksa gökyüzü boş kalır)
+      if (drawn && (reduce || !dark)) draw(performance.now());
     };
+    let drawn = false;
     resize();
     window.addEventListener("resize", resize);
-    const draw = (t) => {
+    function draw(t) {
+      drawn = true;
       ctx.clearRect(0, 0, w, h);
       for (const st of stars) {
         const a = dark ? 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(st.p + (t / 1000) * st.s)) : 0.18;
@@ -150,10 +175,12 @@ export function Cosmos({ dark }) {
         ctx.fillStyle = dark ? "#FFFFFF" : "#2D3A7A";
         ctx.beginPath(); ctx.arc(st.x * w, st.y * h, st.r, 0, Math.PI * 2); ctx.fill();
       }
-      if (!reduce && dark) raf = requestAnimationFrame(draw);
-    };
+      if (!reduce && dark && !document.hidden) raf = requestAnimationFrame(draw);
+    }
+    const vis = () => { if (!document.hidden && !reduce && dark) { cancelAnimationFrame(raf); raf = requestAnimationFrame(draw); } };
+    document.addEventListener("visibilitychange", vis);
     raf = requestAnimationFrame(draw);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
+    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); document.removeEventListener("visibilitychange", vis); };
   }, [dark]);
   return <div className="cosmos" aria-hidden="true"><canvas ref={ref} /></div>;
 }

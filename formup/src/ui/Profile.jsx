@@ -164,16 +164,20 @@ export default function Profile({ state, now, setSettings, onBuy, onWear, onImpo
   );
 }
 
-function Settings({ state, setSettings, onImport, onResetAll, storage }) {
-  const s = state.settings;
-  const [backup, setBackup] = useState(null);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const Row = ({ tr, en, sub, children }) => (
+/** Ayar satırı (modül düzeyinde: her çizimde yeniden yaratılırsa klavye odağı kaybolur) */
+function Row({ tr, en, sub, children }) {
+  return (
     <div className="setting">
       <span style={{ minWidth: 0 }}><b>{tr}</b> {en && <span lang="en" className="en tiny">{en}</span>}{sub && <div className="tiny faint">{sub}</div>}</span>
       {children}
     </div>
   );
+}
+
+function Settings({ state, setSettings, onImport, onResetAll, storage }) {
+  const s = state.settings;
+  const [backup, setBackup] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   return (
     <div className="panel">
       <Bi tr="Ayarlar" en="Settings" className="h3" />
@@ -201,8 +205,8 @@ function Settings({ state, setSettings, onImport, onResetAll, storage }) {
           <input className="plain" type="range" min="0.8" max="0.95" step="0.01" value={s.retention} onChange={(e) => setSettings({ retention: Number(e.target.value) })} aria-label="Hedef hatırlama" />
           <div className="tiny faint">Yüksek değer = daha sık tekrar, daha güçlü hafıza. Sınav dönemi için %92–95 iyi.</div>
         </div>
-        <Row tr="Kayıt" en="Saving" sub={storage === "cloud" ? "Hesabına kaydediliyor; cihazlar arası senkron" : storage === "storage" ? "Kalıcı depoya kaydediliyor" : "Yalnızca bu tarayıcıda; ara sıra yedek al"}>
-          {storage === "cloud" ? <Cloud size={20} style={{ color: "var(--mint)" }} /> : storage === "storage" ? <HardDrive size={20} style={{ color: "var(--mint)" }} /> : <CloudOff size={20} style={{ color: "var(--gold)" }} />}
+        <Row tr="Kayıt" en="Saving" sub={storage === "cloud" ? "Hesabına kaydediliyor; cihazlar arası senkron" : storage === "storage" ? "Kalıcı depoya kaydediliyor" : storage === "error" ? "Buluta şu an ulaşılamıyor; bu tarayıcıya kaydediliyor, yeniden deneniyor" : "Yalnızca bu tarayıcıda; ara sıra yedek al"}>
+          {storage === "cloud" ? <Cloud size={20} style={{ color: "var(--mint)" }} /> : storage === "storage" ? <HardDrive size={20} style={{ color: "var(--mint)" }} /> : <CloudOff size={20} style={{ color: "var(--gold-text)" }} />}
         </Row>
         <Row tr="Yedek" en="Backup">
           <span className="row" style={{ gap: 6 }}>

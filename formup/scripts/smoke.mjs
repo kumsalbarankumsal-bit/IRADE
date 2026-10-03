@@ -39,6 +39,15 @@ const shot = async (page, name, full = false) => { await page.waitForTimeout(150
 const btn = (page, name) => page.getByRole("button", { name }).first();
 const click = async (page, name) => { await btn(page, name).click(); await page.waitForTimeout(220); };
 const visible = async (loc) => (await loc.count()) > 0 && (await loc.first().isVisible());
+async function closeCelebrations(page, name) {
+  for (let i = 0; i < 6; i++) {
+    await page.waitForTimeout(250);
+    if (!(await visible(page.locator(".celebrate")))) return i;
+    await shot(page, `${name}-${i}`);
+    await click(page, /Harika/);
+  }
+  errors.push("kutlamalar kapanmadı");
+}
 async function overflow(page, where) {
   const w = await page.evaluate(() => document.documentElement.scrollWidth);
   if (w > W + 1) errors.push(`yatay taşma (${where}): ${w}px`);
@@ -87,7 +96,7 @@ console.log("ilk ders:", await playSession(page, "10-lesson"));
 
 /* ---------------- 2) Yol, kutlama, düğüm sayfası ---------------- */
 await page.waitForTimeout(500);
-if (await visible(page.locator(".celebrate"))) { await shot(page, "20-celebrate"); await click(page, /Harika/); }
+console.log("kutlama:", await closeCelebrations(page, "20-celebrate"));
 await page.evaluate(() => window.scrollTo(0, 0));
 await shot(page, "21-path-top"); await overflow(page, "path");
 if ((await page.locator(".toast").count()) > 1) errors.push("birden fazla bildirim üst üste");
@@ -98,7 +107,7 @@ if (await visible(openNode)) {
   await shot(page, "23-node-sheet");
   await click(page, /Başla/);
   console.log("ikinci ders:", await playSession(page, "24-lesson2"));
-  if (await visible(page.locator(".celebrate"))) { await shot(page, "25-celebrate"); await click(page, /Harika/); }
+  await closeCelebrations(page, "25-celebrate");
 }
 
 /* ---------------- 3) Gökyüzü + formül ayrıntısı ---------------- */

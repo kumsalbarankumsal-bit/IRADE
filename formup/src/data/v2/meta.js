@@ -51,5 +51,5 @@ export const ACHIEVEMENTS = [
   { id: "labs", tr: "Kaşif", en: "Explorer", dtr: "5 farklı laboratuvarda oyna", den: "Play in 5 different labs", icon: "FlaskConical", check: (s) => Object.keys(s.labsSeen || {}).length >= 5 },
   { id: "speed", tr: "Şimşek", en: "Lightning", dtr: "Hız Turu’nda 20 puan", den: "Score 20 in Speed Round", icon: "Zap", check: (s) => s.best.speed >= 20 },
   { id: "which", tr: "Dedektif", en: "Detective", dtr: "“Hangi formül?” oyununda 8/10", den: "Score 8/10 in “Which formula?”", icon: "Search", check: (s) => s.best.which >= 8 },
-  { id: "night", tr: "Gece Kuşu", en: "Night Owl", dtr: "Gece yarısından sonra çalış", den: "Study after midnight", icon: "Moon", check: (s, c) => c.hour < 4 && c.studiedNow },
+  { id: "night", tr: "Gece Kuşu", en: "Night Owl", dtr: "Gece yarısından sonra çalış", den: "Study after midnight", icon: "Moon", check: (s, c) => c.night },
 ];

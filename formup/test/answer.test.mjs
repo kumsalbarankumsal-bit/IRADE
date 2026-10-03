@@ -19,4 +19,13 @@ test("cevap kontrolü: yuvarlanmış ondalık kabul, kaba yaklaşık red", () =>
   assert.ok(isCorrect("12", { a: 12 }));
   assert.ok(!isCorrect("13", { a: 12 }));
   assert.ok(isCorrect("3,1", { a: 3, tol: 0.2 }));
+  assert.ok(!isCorrect("0,62", { a: 0.625 }));
+  assert.ok(!isCorrect("0,63", { a: 0.625 }));
+  assert.ok(isCorrect("0,625", { a: 0.625 }));
+  assert.ok(!isCorrect("0,34", { a: 1 / 3 }));
+  assert.ok(isCorrect("0,029", { a: 1 / 35 }));
+  assert.ok(!isCorrect("-", { a: 1 }));
+  assert.ok(Number.isNaN(parseAnswer("1,2,5")));
+  assert.ok(Number.isNaN(parseAnswer("1/2/3")));
+  assert.ok(Number.isNaN(parseAnswer("3/")));
 });

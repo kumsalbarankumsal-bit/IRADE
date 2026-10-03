@@ -28,7 +28,7 @@ export function DailyCard({ state, now, onClaim, onChest }) {
           <Bi tr={xp >= goal ? "Günlük hedef tamam!" : "Bugünkü hedefin"} en={xp >= goal ? "Daily goal done!" : "Today's goal"} className="h3" />
           <div className="row small" style={{ gap: 12 }}>
             <span className="row" style={{ gap: 4, color: st.n ? "var(--coral)" : "var(--ink-3)", fontWeight: 600 }}><Flame size={16} /> {st.n} gün</span>
-            <span className="row" style={{ gap: 4, color: "var(--gold)", fontWeight: 600 }}><Sparkles size={16} /> {state.dust} ✦</span>
+            <span className="row" style={{ gap: 4, color: "var(--gold-text)", fontWeight: 600 }}><Sparkles size={16} /> {state.dust} ✦</span>
           </div>
         </div>
       </div>
@@ -100,7 +100,7 @@ export default function Path({ state, now, openNode, startReview, onClaim, onChe
           <section key={sec.unit.id} className="stack" style={{ gap: 6, marginTop: showTrack ? 18 : 6 }}>
             {showTrack && (
               <div style={{ padding: "6px 2px 8px" }}>
-                <div className="eyebrow" style={{ color: "var(--gold)" }}>{sec.track.id === "temel" ? "Bölüm 1" : sec.track.id === "kitap" ? "Bölüm 2 · IB" : "IB+"}</div>
+                <div className="eyebrow" style={{ color: "var(--gold-text)" }}>{sec.track.id === "temel" ? "Bölüm 1" : sec.track.id === "kitap" ? "Bölüm 2 · IB" : "IB+"}</div>
                 <h2 className="h1" style={{ fontSize: 22 }}>{sec.track.tr}</h2>
                 <div lang="en" className="en small">{sec.track.en}</div>
                 <p className="small muted" style={{ margin: "6px 0 0" }}>{sec.track.blurb}</p>
@@ -113,7 +113,7 @@ export default function Path({ state, now, openNode, startReview, onClaim, onChe
                 <div className="row small" style={{ gap: 8 }}>
                   <span className="grow"><Bar pct={doneN / sec.lessons.length} color={crown ? "var(--mint)" : "var(--gold)"} /></span>
                   <span className="num faint" style={{ fontWeight: 600 }}>{doneN}/{sec.lessons.length}</span>
-                  {crown ? <Crown size={18} style={{ color: "var(--gold)" }} /> : null}
+                  {crown ? <Crown size={18} style={{ color: "var(--gold-text)" }} /> : null}
                 </div>
                 {firstLocked && <button className="btn soft sm" style={{ alignSelf: "flex-start", marginTop: 4 }} onClick={() => openNode({ jump: true, unit: sec.unit.id })}><Rocket size={15} /> Biliyorum, atla · Test out</button>}
               </div>
@@ -198,7 +198,7 @@ export function NodeSheet({ state, now, target, onStart, onClose }) {
               const p = state.cards[id];
               return (
                 <div key={id} className="stack-sm" style={{ gap: 2, paddingBottom: 6, borderBottom: "1px solid var(--line)" }}>
-                  <div className="row between"><Bi tr={c.n} en={c.ne} className="small" />{p && p.reps ? <Star size={14} fill="currentColor" style={{ color: "var(--gold)", flex: "none" }} /> : null}</div>
+                  <div className="row between"><Bi tr={c.n} en={c.ne} className="small" />{p && p.reps ? <Star size={14} fill="currentColor" style={{ color: "var(--gold-text)", flex: "none" }} /> : null}</div>
                   <div className="formula-box" style={{ textAlign: "left", padding: "2px 0" }}><Formula f={c} size="sm" /></div>
                 </div>
               );

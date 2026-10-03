@@ -66,6 +66,8 @@ export function Rich({ text, className = "" }) {
   const out = [];
   for (let i = 0; i < parts.length; i++) {
     if (i % 2 === 0) continue;
+    // uzun ifadeler yapıştırılmaz (KaTeX satır kırabilsin, dar ekranda taşmasın)
+    if (parts[i].length > 18) { out[i] = { pre: "", suf: "" }; continue; }
     const prev = txt[i - 1] || "";
     const pm = prev.match(/[^\s]{1,2}$/);
     const pre = pm ? pm[0] : "";
@@ -99,7 +101,7 @@ export function Rel({ o }) {
 }
 
 /** Formülün görsel uzunluğuna göre yazı boyu: uzun formüller küçülür */
-function visualLen(v) {
+export function visualLen(v) {
   if (!v) return 0;
   if (v.startsWith("~")) return v.replace(/\$[^$]*\$/g, "xxxx").length * 0.55;
   let t = v.replace(/\\(left|right|displaystyle|,|;|!|quad)/g, "")

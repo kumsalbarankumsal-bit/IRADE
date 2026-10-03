@@ -183,3 +183,37 @@ test("Günlük görevler: gün boyunca sabit, ilerleme gün sayaçlarından", ()
 test("BY_ID her kartı içerir", () => {
   for (const c of CARDS) assert.equal(BY_ID[c.id], c);
 });
+
+test("İnceleme: aynı gün tekrar oynanan ders kartın hafızasını şişirmez", () => {
+  const id = CARDS[0].id;
+  let s = gradeCard(freshState(), T0, id, 3, { isNew: true });
+  const p1 = s.cards[id];
+  for (let i = 1; i <= 5; i++) s = gradeCard(s, T0 + i * 600e3, id, 4, { isNew: true });
+  assert.equal(s.cards[id].s, p1.s);
+  assert.equal(s.cards[id].due, p1.due);
+  assert.equal(s.days[dayKey(T0)].n, 1);
+});
+
+test("İnceleme: bugün 'Tekrar' denen kart bugün yeniden çalışılınca zamanlanır, liste temizlenir", () => {
+  const id = CARDS[0].id;
+  let s = gradeCard(freshState(), T0, id, 1, { isNew: true });
+  const later = T0 + 11 * 3600e3;
+  if (s.cards[id].due < nextDayStart(T0)) {
+    assert.ok(dueIds(s, later).includes(id));
+    s = gradeCard(s, later, id, 3);
+    assert.ok(!dueIds(s, later).includes(id), "iyi cevaptan sonra listeden çıkmalı");
+  }
+});
+
+test("İnceleme: atlama sınavı sonraki üniteyi açar ama taç vermez; ünite sınavı tekrarı küçük ödül", () => {
+  if (PATH.length < 2) return;
+  const sec = PATH[0], next = PATH[1];
+  const j = finishTest(freshState(), T0, sec.unit.id, { ok: 8, bad: 0 }, true);
+  assert.ok(j.pass && j.first);
+  assert.ok(!j.s.units[sec.unit.id].crown);
+  assert.ok(nodeUnlocked(j.s, next.lessons[0]));
+  const a = finishTest(j.s, T0, sec.unit.id, { ok: 10, bad: 0 });
+  assert.equal(a.dust, 40); assert.ok(a.first);
+  const b = finishTest(a.s, T0, sec.unit.id, { ok: 10, bad: 0 });
+  assert.ok(b.dust < 40); assert.ok(!b.first);
+});
