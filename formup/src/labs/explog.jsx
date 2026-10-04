@@ -155,18 +155,15 @@ function Scene({ a, t, lo, hi, setT }) {
   const wL = Math.max(logTxt.length * 7 + 14, 116);
   items.push({ key: "cl", kind: "log", color: "var(--sky)", sub: "logaritma · logarithm", w: wL, h: hT, must: true,
     at: [...around(anchorsE.map(([x, y]) => [sx(y), sy(x)]), wL, hT, LOG_ORDER), ...[-2.4, -1.4, 4.4, 5.3].map((v) => [sx(XMAX) - wL / 2 - 6, sy(v)])] });
-  // asimptot yazıları: eksen boyunca, eğrinin yaklaştığı uçtan başlayarak
+  // asimptot etiketleri: kesikli çizgilerin hemen yanında küçük "y = 0" / "x = 0" (yaklaşılan uçtan başlayarak)
   {
-    const w = 116, h = 25;
-    const xl = sx(XMIN) + w / 2 + 6, xr = sx(XMAX) - w / 2 - 6, yb0 = sy(0);
-    const ord = up ? [xl, xr] : [xr, xl];
-    items.push({ key: "ay", kind: "asy", line: "y = 0", color: "var(--gold)", w, h, pad: 7, must: true,
-      at: [[ord[0], yb0 + 30], [ord[0], yb0 - 20], [ord[1], yb0 + 30], [ord[1], yb0 - 20], [ord[0], yb0 + 56], [ord[1], yb0 + 56], [ord[0], yb0 - 46]] });
-    const x0p = sx(0), yt0 = sy(YMAX) + h / 2 + 6, ybt = sy(YMIN) - h / 2 - 6;
-    const vord = up ? [ybt, yt0] : [yt0, ybt];
-    items.push({ key: "ax", kind: "asy", line: "x = 0", color: "var(--sky)", w, h, pad: 7, must: true,
-      at: [[x0p + w / 2 + 8, vord[0]], [x0p - w / 2 - 22, vord[0]], [x0p + w / 2 + 8, vord[1]], [x0p - w / 2 - 22, vord[1]],
-        ...[5.1, 4.4, 3.6, -1.6, -2.3].flatMap((v) => [[x0p + w / 2 + 14, sy(v)], [x0p - w / 2 - 24, sy(v)], [x0p + w / 2 + 34, sy(v)]])] });
+    const w = 38, h = 14, yb0 = sy(0), x0p = sx(0);
+    const xs = (up ? [-3.3, -2.4, -1.5, 5.3, 4.4, 3.5, 2.6] : [5.3, 4.4, 3.5, 2.6, -3.3, -2.4, -1.5]).map(sx);
+    items.push({ key: "ay", kind: "asy", text: "y = 0", color: "var(--gold)", w, h, pad: 3, must: true,
+      at: [...xs.map((x) => [x, yb0 - 11]), ...xs.map((x) => [x, yb0 + 27])] });
+    const ys = (up ? [-2.6, -1.9, -1.2, 5.4, 4.6, 3.8] : [5.4, 4.6, 3.8, -2.6, -1.9, -1.2]).map(sy);
+    items.push({ key: "ax", kind: "asy", text: "x = 0", color: "var(--sky)", w, h, pad: 3, must: true,
+      at: [...ys.map((y) => [x0p + w / 2 + 6, y]), ...ys.map((y) => [x0p - w / 2 - 22, y])] });
   }
   const box = { x0: 5, y0: 5, x1: W - 5, y1: H - 5 };
   const tags = place(items, obstacles, box);
@@ -211,12 +208,7 @@ function Scene({ a, t, lo, hi, setT }) {
         if (tg.kind === "pt") return <text key={tg.key} x={tg.x} y={tg.y + 4} fontSize="11" fontWeight="800" textAnchor="middle" fill={tg.color} style={halo}>{tg.text}</text>;
         if (tg.kind === "exp") return <Tag key={tg.key} {...tg}>y = <ExpTxt a={a} /></Tag>;
         if (tg.kind === "log") return <Tag key={tg.key} {...tg}>y = <LogTxt a={a} /></Tag>;
-        if (tg.kind === "asy") return (
-          <g key={tg.key}>
-            <text x={tg.x} y={tg.y - 3} fontSize="9" fontWeight="600" textAnchor="middle" fill="var(--ink-3)" style={halo}>asimptot · asymptote</text>
-            <text x={tg.x} y={tg.y + 10} fontSize="11.5" fontWeight="800" textAnchor="middle" fill={tg.color} style={halo}>{tg.line}</text>
-          </g>
-        );
+        if (tg.kind === "asy") return <text key={tg.key} x={tg.x} y={tg.y + 4} fontSize="11" fontWeight="800" fontStyle="italic" textAnchor="middle" fill={tg.color} style={halo}>{tg.text}</text>;
         return (
           <g key={tg.key}>
             <text x={tg.x} y={tg.y - 2} fontSize="11.5" fontWeight="800" textAnchor="middle" fill="var(--ink-2)" style={halo}>y = x</text>
@@ -281,6 +273,7 @@ export default function ExpLogLab({ card }) {
     { label: U("Logaritma"), labelEn: "logarithm", tex: `${logT} ${yT} ${eq} ${tT}`, color: "var(--sky)" },
     { label: U(a > 1 ? "Artan" : "Azalan"), labelEn: a > 1 ? "increasing" : "decreasing", tex: a > 1 ? `a = ${e ? "e \\approx 2{,}72" : aT} > 1` : `0 < a = ${aT} < 1`, color: "var(--violet)" },
     { label: U("Her tabanda"), labelEn: "for every base", tex: `a^0 = 1,\\ \\log_a 1 = 0`, color: "var(--ink-3)" },
+    { label: U("Asimptotlar (kesikli)"), labelEn: "asymptotes (dashed)", tex: `y = 0\\ (${aT}^x),\\quad x = 0\\ (${logT} x)`, color: "var(--coral)" },
   ];
 
   /* ---------- ipucu ---------- */
